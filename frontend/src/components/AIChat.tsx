@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { api } from '../services/api';
-import { Sparkles, Send, Loader2 } from 'lucide-react';
+import { Send, Loader2 } from 'lucide-react';
 
 export const AIChat = () => {
   const [q, setQ] = useState("");

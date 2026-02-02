@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 // 1. Import TickerData here
 import { api, TickerData } from '../services/api';
 import { TrendingUp, TrendingDown } from 'lucide-react';
