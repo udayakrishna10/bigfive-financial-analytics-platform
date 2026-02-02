@@ -6,15 +6,23 @@ import { Quote, Globe } from 'lucide-react';
 export const SentimentFeed = ({ ticker = "AAPL" }) => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   // Force "ALL" mode for market overview
   const effectiveTicker = 'ALL';
 
   useEffect(() => {
     setLoading(true);
-    api.getSentiment(effectiveTicker).then(res => {
-      setData(res);
-      setLoading(false);
-    });
+    setError("");
+    api.getSentiment(effectiveTicker)
+      .then(res => {
+        setData(res);
+      })
+      .catch(err => {
+        setError(err.message);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [effectiveTicker, ticker]);
 
   return (
@@ -25,6 +33,9 @@ export const SentimentFeed = ({ ticker = "AAPL" }) => {
           <Globe className="text-purple-400" size={20} />
         </div>
         <h2 className="text-xl font-bold text-white tracking-tight">Global Market Pulse</h2>
+        <span className="text-[10px] text-slate-500 font-mono border border-slate-800 px-2 py-1 rounded-full bg-slate-900/50">
+          Limit: 50 req/day
+        </span>
       </div>
 
       {loading ? (
@@ -44,7 +55,7 @@ export const SentimentFeed = ({ ticker = "AAPL" }) => {
                 <h3 className="text-xs font-black uppercase tracking-widest">AI Consensus Analysis</h3>
               </div>
               <p className="text-slate-200 italic text-sm leading-relaxed font-medium">
-                "{data?.sentiment_summary}"
+                "{error ? <span className="text-rose-400">{error}</span> : data?.sentiment_summary}"
               </p>
             </div>
           </div>

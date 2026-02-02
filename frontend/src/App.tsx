@@ -8,6 +8,7 @@ import { SentimentFeed } from './components/SentimentFeed';
 import { HealthView } from './components/HealthView';
 import { Toaster } from 'sonner';
 
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
 
@@ -23,7 +24,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-200 flex overflow-hidden">
+    <div className="min-h-screen bg-slate-950 text-slate-200 flex overflow-hidden relative">
       {/* Sonner for stylish toast notifications */}
       <Toaster position="top-right" theme="dark" />
 
@@ -54,7 +55,7 @@ export default function App() {
         </header>
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 pb-32 md:p-8 custom-scrollbar">
           <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-500">
             {renderContent()}
 
@@ -62,16 +63,18 @@ export default function App() {
         </div>
 
 
-        {/* Global Fixed Footer */}
-        <footer className="fixed bottom-0 w-full py-3 bg-slate-950/90 backdrop-blur-md border-t border-white/5 flex flex-col items-center justify-center shrink-0 z-50">
-          <p className="text-sm text-slate-400 font-bold tracking-wide flex items-center gap-2">
-            Designed & Built by <span className="text-blue-400">Udaya Krishna Karanam</span>
-          </p>
-        </footer>
+
 
         {/* Mobile Navigation */}
         <MobileNav activeTab={activeTab} setActiveTab={setActiveTab} />
       </main>
+
+      {/* Global Fixed Footer */}
+      <footer className="fixed bottom-0 w-full py-3 bg-slate-950/90 backdrop-blur-md border-t border-white/5 flex flex-col items-center justify-center shrink-0 z-50">
+        <p className="text-sm text-slate-400 font-bold tracking-wide flex items-center gap-2">
+          Designed & Built by <span className="text-blue-400">Udaya Krishna Karanam</span>
+        </p>
+      </footer>
     </div >
   );
 }

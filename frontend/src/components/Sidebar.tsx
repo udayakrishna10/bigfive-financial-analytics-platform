@@ -7,6 +7,7 @@ import {
   Activity
 } from 'lucide-react';
 
+
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
@@ -22,9 +23,9 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
   ];
 
   return (
-    <aside className="w-64 border-r border-slate-900 bg-slate-950 flex flex-col z-30">
+    <aside className="w-64 border-r border-slate-900 bg-slate-950 flex flex-col z-30 pb-14">
       <div className="p-6 mb-4">
-        <h1 className="font-black tracking-tighter text-2xl text-white">BigFive</h1>
+        <h1 className="font-black tracking-tighter text-3xl text-white">BigFive</h1>
       </div>
 
       <nav className="flex-1 px-4 space-y-2">

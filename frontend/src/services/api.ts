@@ -16,14 +16,26 @@ export const api = {
 
   // ADD THIS FUNCTION TO FIX THE ERROR
   getSentiment: (ticker: string) =>
-    fetch(`${API_CONFIG.BASE_URL}/news-sentiment?ticker=${ticker}`).then(res => res.json()),
+    fetch(`${API_CONFIG.BASE_URL}/news-sentiment?ticker=${ticker}`).then(async res => {
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || "Failed to fetch sentiment");
+      }
+      return res.json();
+    }),
 
   askAI: (question: string) =>
     fetch(`${API_CONFIG.BASE_URL}/ask`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question })
-    }).then(res => res.json()),
+    }).then(async res => {
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || "Failed to get AI response");
+      }
+      return res.json();
+    }),
 
   checkHealth: () =>
     fetch(`${API_CONFIG.BASE_URL}/health`).then(res => res.json()),

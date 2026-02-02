@@ -7,7 +7,7 @@ export const ChartSection = () => {
   const [ticker, setTicker] = useState('AAPL');
   const [allPoints, setAllPoints] = useState<any[]>([]);
   const [points, setPoints] = useState<any[]>([]);
-  const [range, setRange] = useState('1M');
+  const [range, setRange] = useState('3M');
 
   useEffect(() => {
     api.getChart(ticker).then(data => {
@@ -19,7 +19,7 @@ export const ChartSection = () => {
     if (allPoints.length === 0) return;
 
     // Filter based on range
-    let sliceCount = 30; // Default 1M
+    let sliceCount = 90; // Default 3M
     if (range === '7D') sliceCount = 7;
     if (range === '1M') sliceCount = 30;
     if (range === '3M') sliceCount = 90;
@@ -43,8 +43,8 @@ export const ChartSection = () => {
                   key={r}
                   onClick={() => setRange(r)}
                   className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-colors border whitespace-nowrap ${range === r
-                      ? 'bg-blue-500 text-white border-blue-400'
-                      : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700 hover:text-white'
+                    ? 'bg-blue-500 text-white border-blue-400'
+                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700 hover:text-white'
                     }`}
                 >
                   {r}
@@ -133,6 +133,13 @@ export const ChartSection = () => {
 
           </ComposedChart>
         </ResponsiveContainer>
+      </div>
+
+      <div className="mt-4 flex items-center justify-center gap-2">
+        <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+        <p className="text-[10px] text-slate-500 font-mono">
+          Note: Data refreshes daily at ~6:00 PM EST (DAG Execution).
+        </p>
       </div>
     </div>
   );

@@ -133,6 +133,27 @@ def set_news_cache(ticker, data):
     _news_cache[ticker] = {"time": time.time(), "data": data}
 
 # ===========================
+# RATE LIMITING
+# ===========================
+DAILY_LIMIT = 50
+_usage_tracker = {"date": date.today(), "count": 0}
+
+def check_daily_limit():
+    global _usage_tracker
+    today = date.today()
+    
+    if _usage_tracker["date"] != today:
+        _usage_tracker = {"date": today, "count": 0}
+    
+    if _usage_tracker["count"] >= DAILY_LIMIT:
+        raise HTTPException(
+            status_code=429, 
+            detail="To save costs, OpenAI usage is limited to 50 requests per day globally for all users. Please come back tomorrow."
+        )
+    
+    _usage_tracker["count"] += 1
+
+# ===========================
 # Pydantic Models
 # ===========================
 class AskRequest(BaseModel):
@@ -143,10 +164,11 @@ class AskRequest(BaseModel):
 # ===========================
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "faang-in-sight"}
+    return {"status": "ok", "service": "bigfive-backend"}
 
 @app.post("/ask")
 def ask(request: AskRequest):
+    check_daily_limit()
     question = (request.question or "").strip()
     if not question:
         raise HTTPException(status_code=400, detail="Question must not be empty.")
@@ -232,6 +254,7 @@ def chart_data(ticker: str = "AAPL"):
 
 @app.get("/news-sentiment")
 def news_sentiment(ticker: str = "AAPL", limit: int = 10):
+    check_daily_limit()
     symbol = ticker.upper()
     if symbol == "ALL":
         # Group query for all FAANG companies

@@ -16,7 +16,7 @@ export const MobileNav = ({ activeTab, setActiveTab }: MobileNavProps) => {
     ];
 
     return (
-        <div className="md:hidden fixed bottom-12 left-6 right-6 h-16 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-between px-6 shadow-2xl z-50">
+        <div className="md:hidden fixed bottom-11 left-6 right-6 h-16 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-between px-6 shadow-2xl z-50">
             {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
