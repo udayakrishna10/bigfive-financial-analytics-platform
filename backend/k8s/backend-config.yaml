@@ -1,0 +1,11 @@
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: big-five-api-be-config
+spec:
+  healthCheck:
+    checkIntervalSec: 15
+    timeoutSec: 5
+    type: HTTP
+    requestPath: /health
+    port: 8080

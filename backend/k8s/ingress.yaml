@@ -1,0 +1,15 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: big-five-api-ingress
+  annotations:
+    # This links your reserved static IP (34.160.124.118)
+    kubernetes.io/ingress.global-static-ip-name: big-five-api-static-ip
+    kubernetes.io/ingress.class: "gce"
+    kubernetes.io/ingress.allow-http: "true" 
+spec:
+  defaultBackend:
+    service:
+      name: big-five-api-service
+      port:
+        number: 80
