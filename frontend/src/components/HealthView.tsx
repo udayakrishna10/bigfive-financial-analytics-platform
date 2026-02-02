@@ -37,7 +37,7 @@ export const HealthView = () => {
             <div className="flex items-center gap-2 text-slate-400 mb-1">
               <Globe size={14} /> <span className="text-[10px] uppercase font-black tracking-widest">External IP</span>
             </div>
-            <p className="text-white font-mono text-sm">34.160.xxx.xxx (Masked)</p>
+            <p className="text-white font-mono text-sm">34.160.xxx.xxx</p>
           </div>
         </div>
       </div>
