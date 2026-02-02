@@ -1,24 +1,61 @@
 import { useEffect, useState } from 'react';
-// 1. Import TickerData here
 import { api, TickerData } from '../services/api';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, AlertTriangle, RefreshCw } from 'lucide-react';
 import { getLogo } from '../helpers/logos';
 
 export const Dashboard = () => {
-  // 2. Add <TickerData[]> to the state
   const [stocks, setStocks] = useState<TickerData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    // 3. Optional: Add error handling to prevent crashes
-    api.getDashboard()
-      .then(data => setStocks(data.tickers))
-      .catch(err => console.error("Dashboard fetch failed:", err));
+    loadData();
   }, []);
+
+  const loadData = () => {
+    setLoading(true);
+    setError("");
+    api.getDashboard()
+      .then(data => {
+        if (data && Array.isArray(data.tickers)) {
+          setStocks(data.tickers);
+        } else {
+          console.warn("Invalid data format:", data);
+          setStocks([]);
+          // Don't error hard, just show empty
+        }
+      })
+      .catch(err => {
+        console.error("Dashboard fetch failed:", err);
+        setError("Failed to load market data. " + (err.message || ""));
+      })
+      .finally(() => setLoading(false));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <RefreshCw className="animate-spin text-blue-500" size={32} />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-rose-500/10 border border-rose-500/20 rounded-3xl text-center">
+        <AlertTriangle className="mx-auto text-rose-400 mb-2" size={32} />
+        <h3 className="text-white font-bold mb-1">Connection Error</h3>
+        <p className="text-rose-300 text-sm mb-4">{error}</p>
+        <button onClick={loadData} className="px-4 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 rounded-xl text-sm transition-colors">
+          Retry Connection
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* 4. Now 's' is automatically typed as TickerData */}
         {stocks.map((s, i) => (
           <div
             key={s.ticker}
@@ -40,10 +77,9 @@ export const Dashboard = () => {
               </div>
             </div>
             <div className="mt-6 pt-4 border-t border-slate-800 flex items-center gap-2">
-              {/* Lightning icon removed */}
               <span className="text-xs text-slate-500 uppercase">RSI:</span>
               <span className={`text-sm font-mono ${s.rsi_14 > 70 ? 'text-rose-400' : s.rsi_14 < 30 ? 'text-emerald-400' : 'text-slate-200'}`}>
-                {s.rsi_14.toFixed(2)}
+                {s.rsi_14?.toFixed(2) || "N/A"}
               </span>
             </div>
           </div>
