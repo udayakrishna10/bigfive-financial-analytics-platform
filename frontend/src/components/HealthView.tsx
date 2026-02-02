@@ -52,13 +52,24 @@ export const HealthView = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6 relative">
             {/* Step 1: Ingestion */}
+            {/* Step 1: Market Data */}
             <div className="flex flex-col items-center group">
               <div className="w-16 h-16 rounded-2xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center mb-4 z-10 transition-colors group-hover:border-blue-500 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]">
                 <span className="text-2xl">📡</span>
               </div>
-              <h3 className="text-white font-bold mb-1">Ingestion</h3>
+              <h3 className="text-white font-bold mb-1">Market Data</h3>
               <p className="text-xs text-slate-500 text-center">yFinance Library</p>
-              <div className="mt-2 px-2 py-1 bg-slate-800 rounded text-[10px] text-blue-400 font-mono">RAW_DATA</div>
+              <div className="mt-2 px-2 py-1 bg-slate-800 rounded text-[10px] text-blue-400 font-mono">OHLCV</div>
+            </div>
+
+            {/* Step 2: News Data */}
+            <div className="flex flex-col items-center group">
+              <div className="w-16 h-16 rounded-2xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center mb-4 z-10 transition-colors group-hover:border-pink-500 group-hover:shadow-[0_0_20px_rgba(236,72,153,0.3)]">
+                <span className="text-2xl">📰</span>
+              </div>
+              <h3 className="text-white font-bold mb-1">News Data</h3>
+              <p className="text-xs text-slate-500 text-center">NewsAPI.org</p>
+              <div className="mt-2 px-2 py-1 bg-slate-800 rounded text-[10px] text-pink-400 font-mono">SENTIMENT</div>
             </div>
 
             {/* Step 2: Orchestration (New) */}
