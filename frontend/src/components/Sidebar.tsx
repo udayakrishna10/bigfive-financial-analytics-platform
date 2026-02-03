@@ -57,7 +57,7 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Status</p>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs text-slate-300 font-mono">GKE_ONLINE</span>
+            <span className="text-xs text-slate-300 font-mono">SERVERLESS</span>
           </div>
         </div>
       </div>
