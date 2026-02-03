@@ -47,9 +47,9 @@ export default function App() {
             <h1 className="font-black tracking-tighter text-2xl text-white">BigFive</h1>
           </div>
 
-          <div className="flex items-center gap-3 px-4 py-2 bg-slate-900 rounded-2xl border border-slate-800 text-[10px] font-mono text-blue-400">
+          <div className="flex items-center gap-3 px-4 py-2 bg-slate-900 rounded-2xl border border-slate-800 text-[10px] font-mono text-emerald-400">
             <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-            <span className="hidden sm:inline">GKE_CLUSTER_LIVE</span>
+            <span className="hidden sm:inline">SERVERLESS_LIVE</span>
             <span className="sm:hidden">LIVE</span>
           </div>
         </header>
