@@ -54,7 +54,7 @@ export const SentimentFeed = ({ ticker = "AAPL" }) => {
                 </div>
                 <h3 className="text-xs font-black uppercase tracking-widest">AI Consensus Analysis</h3>
               </div>
-              <p className="text-slate-200 italic text-sm leading-relaxed font-medium">
+              <p className="text-slate-200 italic text-sm leading-relaxed font-medium whitespace-pre-line">
                 "{error ? <span className="text-rose-400">{error}</span> : data?.sentiment_summary}"
               </p>
             </div>
