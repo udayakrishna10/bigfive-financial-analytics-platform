@@ -19,7 +19,7 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'insights', label: 'AI Insights', icon: Sparkles },
     { id: 'news', label: 'Sentiment', icon: Newspaper },
-    { id: 'health', label: 'System', icon: Activity },
+    { id: 'health', label: 'System and Data Architecture', icon: Activity },
   ];
 
   return (
