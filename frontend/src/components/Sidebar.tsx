@@ -24,7 +24,7 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
 
   return (
     <aside className="w-64 border-r border-slate-900 bg-slate-950 flex flex-col z-30 pb-14">
-      <div className="p-6 mb-4">
+      <div className="px-4 py-6 mb-4">
         <h1 className="font-black tracking-tighter text-3xl text-white">BigFive</h1>
       </div>
 
@@ -42,8 +42,8 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
                 : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900'
                 }`}
             >
-              <Icon size={20} className={isActive ? 'text-blue-400' : 'group-hover:text-slate-300'} />
-              <span className="font-semibold text-sm">{item.label}</span>
+              <Icon size={20} className={`flex-shrink-0 ${isActive ? 'text-blue-400' : 'group-hover:text-slate-300'}`} />
+              <span className="font-semibold text-sm whitespace-normal text-left leading-tight">{item.label}</span>
               {isActive && (
                 <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.6)]" />
               )}
