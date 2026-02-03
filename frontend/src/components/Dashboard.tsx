@@ -89,7 +89,7 @@ export const Dashboard = () => {
       <div className="mt-8 flex items-center justify-center gap-2 pb-8">
         <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
         <p className="text-[10px] text-slate-500 font-mono">
-          Note: Data refreshes daily at ~6:00 PM EST (DAG Execution).
+          Note: Data refreshes daily at ~6:00 PM EST (Cloud Run Jobs).
         </p>
       </div>
     </div>

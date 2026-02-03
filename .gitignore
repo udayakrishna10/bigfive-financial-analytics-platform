@@ -209,7 +209,7 @@ __marimo__/
 =======
 
 # JSON keys / secrets
-*.json
+# *.json
 
 # Node / frontend
 node_modules/
@@ -226,3 +226,6 @@ google-cloud-sdk/
 google-cloud-sdk/
 *.tar.gz
 >>>>>>> 5cdb175 (feat: initial commit of Big Five analytics platform)
+
+# Local Netlify folder
+.netlify

@@ -22,7 +22,7 @@ export const HealthView = () => {
           </div>
           <div>
             <h2 className="text-2xl font-bold text-white tracking-tight">System Integrity</h2>
-            <p className="text-slate-500 text-sm">GKE Autopilot Cluster Status</p>
+            <p className="text-slate-500 text-sm">Cloud Run (Serverless) Status</p>
           </div>
         </div>
 
@@ -37,7 +37,7 @@ export const HealthView = () => {
             <div className="flex items-center gap-2 text-slate-400 mb-1">
               <Globe size={14} /> <span className="text-[10px] uppercase font-black tracking-widest">External IP</span>
             </div>
-            <p className="text-white font-mono text-sm">34.160.xxx.xxx</p>
+            <p className="text-white font-mono text-sm">Managed URL</p>
           </div>
         </div>
       </div>
@@ -69,17 +69,17 @@ export const HealthView = () => {
               </div>
               <h3 className="text-white font-bold mb-1">News Data</h3>
               <p className="text-xs text-slate-500 text-center">NewsAPI.org</p>
-              <div className="mt-2 px-2 py-1 bg-slate-800 rounded text-[10px] text-pink-400 font-mono">SENTIMENT</div>
+              <div className="mt-2 px-2 py-1 bg-slate-800 rounded text-[10px] text-pink-400 font-mono">TITLE_ONLY</div>
             </div>
 
             {/* Step 2: Orchestration (New) */}
             <div className="flex flex-col items-center group">
               <div className="w-16 h-16 rounded-2xl bg-slate-800 border-2 border-slate-700 flex items-center justify-center mb-4 z-10 transition-colors group-hover:border-sky-500 group-hover:shadow-[0_0_20px_rgba(14,165,233,0.3)]">
-                <span className="text-2xl">🌪️</span>
+                <span className="text-2xl">⏰</span>
               </div>
               <h3 className="text-white font-bold mb-1">Orchestration</h3>
-              <p className="text-xs text-slate-500 text-center">Apache Airflow</p>
-              <div className="mt-2 px-2 py-1 bg-slate-800 rounded text-[10px] text-sky-400 font-mono">DAG_FLOW</div>
+              <p className="text-xs text-slate-500 text-center">Cloud Run Jobs</p>
+              <div className="mt-2 px-2 py-1 bg-slate-800 rounded text-[10px] text-sky-400 font-mono">DAILY_ETL</div>
             </div>
 
             {/* Step 3: Storage / ETL */}
@@ -102,8 +102,8 @@ export const HealthView = () => {
                 <span className="text-2xl">☸️</span>
               </div>
               <h3 className="text-white font-bold mb-1">Infrastructure</h3>
-              <p className="text-xs text-slate-500 text-center">Google GKE</p>
-              <div className="mt-2 px-2 py-1 bg-slate-800 rounded text-[10px] text-indigo-400 font-mono">K8S_CLUSTER</div>
+              <p className="text-xs text-slate-500 text-center">Google Cloud Run</p>
+              <div className="mt-2 px-2 py-1 bg-slate-800 rounded text-[10px] text-indigo-400 font-mono">SERVERLESS</div>
             </div>
 
             {/* Step 5: Analysis */}

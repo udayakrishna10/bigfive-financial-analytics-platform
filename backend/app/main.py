@@ -1,4 +1,8 @@
 import os
+import re
+import math
+import logging
+import time
 import math
 import logging
 import time
@@ -33,8 +37,7 @@ TICKER_TO_COMPANY = {
     "GOOGL": "Google",
 }
 FINANCE_DOMAINS = ",".join([
-    "bloomberg.com", "reuters.com", "wsj.com", "cnbc.com", "ft.com",
-    "marketwatch.com", "finance.yahoo.com", "barrons.com", "fool.com", "seekingalpha.com", "investors.com"
+    "cnbc.com", "finance.yahoo.com", "bloomberg.com", "reuters.com", "wsj.com", "barrons.com"
 ])
 REPUTED_SOURCES = {
     "Bloomberg", "Reuters", "The Wall Street Journal", "CNBC", "Financial Times",
@@ -269,7 +272,8 @@ def news_sentiment(ticker: str = "AAPL", limit: int = 10):
         "q": q_param,
         "apiKey": NEWS_API_KEY,
         "domains": FINANCE_DOMAINS,
-        "pageSize": limit * 2,
+        "pageSize": limit * 5,
+        "sortBy": "publishedAt"
     }
 
     try:
@@ -283,19 +287,31 @@ def news_sentiment(ticker: str = "AAPL", limit: int = 10):
     filtered = []
     for a in articles:
         # For ALL, we trust the query more; for specific ticker, ensure company name is in text
-        text = f"{a.get('title') or ''} {a.get('description') or ''}".lower()
+        # STRICT MODE: Search TITLE ONLY to ensure relevance.
+        text = f"{a.get('title') or ''}".lower()
         
         detected_company = symbol if symbol != "ALL" else "Market"
         if symbol == "ALL":
             # Infer which company is talked about
             for t_code, t_name in TICKER_TO_COMPANY.items():
-                 if t_name.lower() in text or t_code.lower() in text:
+                 # Use regex for whole word matching (avoids 'Meta' matching 'metal')
+                 pattern = rf"\b({re.escape(t_name.lower())}|{re.escape(t_code.lower())})\b"
+                 if re.search(pattern, text):
                      detected_company = t_name.upper()
                      break
         else:
              detected_company = TICKER_TO_COMPANY.get(symbol, symbol).upper()
 
         if symbol == "ALL":
+            # STRICT FILTER: If we didn't match a specific FAANG ticker, SKIP IT.
+            if detected_company == "Market":
+                continue
+
+            # Skip broken links
+            url = a.get("url")
+            if not url or "removed.com" in url:
+                continue
+
             if any(k in text for k in STOCK_KEYWORDS):
                  filtered.append({
                     "title": a["title"],
@@ -305,6 +321,11 @@ def news_sentiment(ticker: str = "AAPL", limit: int = 10):
                     "ticker": detected_company
                 })
         else:
+            # Skip broken links
+            url = a.get("url")
+            if not url or "removed.com" in url:
+                continue
+
             if is_stock_related(a.get("title"), a.get("description"), TICKER_TO_COMPANY.get(symbol, symbol)):
                 filtered.append({
                     "title": a["title"],
@@ -315,25 +336,32 @@ def news_sentiment(ticker: str = "AAPL", limit: int = 10):
                 })
         if len(filtered) >= limit:
             break
+            
+    # Explicitly sort by date descending to be safe
+    filtered.sort(key=lambda x: x.get("publishedAt", ""), reverse=True)
 
-    headlines = "\n".join([f"- {a['title']}" for a in filtered])
-    try:
-        completion = openai_client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": f"Summarize sentiment for {symbol}:\n{headlines}"}],
-            temperature=0.4,
-        )
-        summary = completion.choices[0].message.content.strip().replace("*", "")
-    except Exception as e:
-        logger.error(f"OpenAI sentiment error: {e}")
-        summary = "Sentiment analysis unavailable."
+    headlines = "\n".join([f"- {title}" for title in [a['title'] for a in filtered]])
+    
+    if not headlines.strip():
+        summary = "No significant news found in the last 24 hours to generate a sentiment summary."
+    else:
+        try:
+            completion = openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{"role": "user", "content": f"Summarize sentiment for {symbol} based on these headlines:\n{headlines}\n\nProvide the answer as a single, simple English paragraph."}],
+                temperature=0.4,
+            )
+            summary = completion.choices[0].message.content.strip().replace("*", "")
+        except Exception as e:
+            logger.error(f"OpenAI sentiment error: {e}")
+            summary = "Sentiment analysis currently unavailable."
 
     response = {"ticker": symbol, "articles": filtered, "sentiment_summary": summary}
     set_news_cache(f"{symbol}-sentiment", response)
     return response
 
 @app.get("/big-five-dashboard")
-def big_five_dashboard(days: int = 30):
+def big_five_dashboard(days: int = 365):
     query = f"""
         SELECT ticker, trade_date, close, daily_return, rsi_14
         FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
@@ -348,11 +376,18 @@ def big_five_dashboard(days: int = 30):
         ]
     )
     df = bq_client.query(query, job_config=job_config).to_dataframe()
+    
+    if df.empty:
+         return {"tickers": []}
+
     latest = df.sort_values("trade_date", ascending=False).groupby("ticker").head(1)
     
     # Enforce fixed order
     records = latest.to_dict(orient="records")
-    records.sort(key=lambda x: BIG_FIVE_TICKERS.index(x['ticker']))
+    try:
+        records.sort(key=lambda x: BIG_FIVE_TICKERS.index(x['ticker']))
+    except ValueError:
+        pass # Handle case if unknown ticker slips in
     
     return {"tickers": records}
 
