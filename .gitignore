@@ -205,8 +205,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
-<<<<<<< HEAD
-=======
 
 # JSON keys / secrets
 # *.json
@@ -223,9 +221,6 @@ pnpm-lock.yaml
 # Ignore SDK and large binaries
 google-cloud-sdk/
 *.tar.gz
-google-cloud-sdk/
-*.tar.gz
->>>>>>> 5cdb175 (feat: initial commit of Big Five analytics platform)
 
 # Local Netlify folder
 .netlify

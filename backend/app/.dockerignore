@@ -1,0 +1,16 @@
+# Security
+.env
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Debug Scripts
+debug_*.py
+
+# Git
+.git
+.gitignore

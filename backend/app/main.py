@@ -176,13 +176,13 @@ def ask(request: AskRequest):
     if not question:
         raise HTTPException(status_code=400, detail="Question must not be empty.")
 
-    # Fetch recent market data
+    # Fetch recent market data (Last 1 Year to allow robust analysis)
     query = f"""
         SELECT ticker, trade_date, close, rsi_14, ma_20, ma_50
         FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
-        WHERE trade_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY)
-        ORDER BY trade_date DESC
-        LIMIT 500
+        WHERE trade_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 365 DAY)
+        ORDER BY ticker, trade_date DESC
+        LIMIT 2000
     """
     try:
         df = bq_client.query(query).to_dataframe()
@@ -194,7 +194,8 @@ def ask(request: AskRequest):
         raise HTTPException(status_code=500, detail="No market data available.")
 
     df = df.replace([np.inf, -np.inf], np.nan).where(pd.notnull(df), None)
-    df_str = df.head(50).to_string(index=False)
+    # Pass ALL fetched data (up to 2000 rows) to the AI, not just head(50)
+    df_str = df.to_string(index=False)
 
     # OpenAI analysis
     prompt = f"User question: {question}\n\nRecent Market Data:\n{df_str}\n\nAnalyze trends, momentum, and risks."

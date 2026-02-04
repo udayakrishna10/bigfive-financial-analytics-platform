@@ -5,7 +5,7 @@
 
 [[redirects]]
   from = "/api/*"
-  to = "http://34.160.124.118/:splat"
+  to = "https://big-five-api-1007680875469.us-central1.run.app/:splat"
   status = 200
   force = true
 
