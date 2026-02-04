@@ -195,7 +195,7 @@ def ask(request: AskRequest):
 
     df = df.replace([np.inf, -np.inf], np.nan).where(pd.notnull(df), None)
     # Pass ALL fetched data (up to 2000 rows) to the AI, not just head(50)
-    df_str = df.to_string(index=False)
+    df_str = df.to_string(index=False, max_rows=None)
 
     # OpenAI analysis
     prompt = f"User question: {question}\n\nRecent Market Data:\n{df_str}\n\nAnalyze trends, momentum, and risks."

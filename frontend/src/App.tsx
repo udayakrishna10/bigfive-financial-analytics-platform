@@ -1,5 +1,4 @@
 import { useState } from 'react';
-
 import { Sidebar } from './components/Sidebar.tsx';
 import { MobileNav } from './components/MobileNav';
 import { Dashboard } from './components/Dashboard';
@@ -71,7 +70,7 @@ export default function App() {
       </main>
 
       {/* Global Fixed Footer */}
-      <footer className="fixed bottom-0 w-full py-2 bg-slate-950/90 backdrop-blur-md border-t border-white/5 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-6 shrink-0 z-50">
+      <footer className="fixed bottom-0 w-full py-3 bg-slate-950/90 backdrop-blur-md border-t border-white/5 flex flex-col items-center justify-center shrink-0 z-50">
         <p className="text-sm text-slate-400 font-bold tracking-wide flex items-center gap-2">
           Designed & Built by <span className="text-blue-400">Udaya Krishna Karanam</span>
         </p>
