@@ -2,8 +2,8 @@
 **Jan 2026 – Feb 2026**
 
 ## Project Summary
-An end-to-end financial data engineering and AI solution providing real-time analytics and strategic sentiment for the "Big Tech" giants: Apple, Amazon, Meta, Netflix, and Google. The platform is designed for mathematical precision and cost-efficiency, processing daily market data and high-signal news to generate executive-level insights. Originally built on a heavy Kubernetes (GKE) stack, it was re-engineered into a Serverless, Low-Cost pipeline that automates the lifecycle from ingestion to historical archiving.
-
+An end-to-end financial data engineering and AI solution providing real-time analytics and strategic sentiment for the "Big Tech" giants: Apple, Amazon, Meta, Netflix, and Google. The platform is designed for mathematical precision and cost-efficiency, processing daily market data and high-signal news to generate executive-level insights. Initially built on a heavy Kubernetes (GKE) stack, it was re-engineered into a Serverless, Low-Cost pipeline that automates the lifecycle from ingestion to historical archiving.
+## Live @ https://bigfivebyuk.netlify.app
 
 ## 🔄 Evolution of Architecture
 
@@ -29,7 +29,7 @@ The platform follows a decoupled, batch-oriented architecture optimized for the 
 *   **Frontend**: A responsive React 18 + Vite dashboard hosted on Netlify.
 
 ## Why I Migrated to Serverless?
-I strategically shifted from GKE and Cloud Composer to a Serverless model to prove that enterprise-grade intelligence doesn't require high-overhead infrastructure.
+I shifted from GKE and Cloud Composer to a Serverless model to prove that enterprise-grade intelligence doesn't require high-overhead infrastructure.
 
 *   **Significant Cost Reduction**: Removed the fixed monthly fees of GKE and Airflow, utilizing the GCP Serverless model.
 *   **Operational Simplicity**: Eliminated node management and cluster maintenance.
@@ -39,11 +39,12 @@ I strategically shifted from GKE and Cloud Composer to a Serverless model to pro
 
 | Category | Tools & Technologies |
 | :--- | :--- |
-| **Cloud Infrastructure** | GCP, Cloud Run, Cloud Scheduler, Docker |
+| **Cloud Infrastructure** | GCP, Cloud Run, Cloud Scheduler, Docker, Cloud Run Jobs, Secret Manager |
 | **Data Platform** | Google BigQuery, Google Cloud Storage (GCS) |
 | **Backend API** | Python, FastAPI, Pandas, NumPy |
 | **AI & Intelligence** | OpenAI GPT-4o-mini, News Sentiment Engineering |
-| **Quant Analysis** | RSI (14-day), SMA (20/50), Daily Returns |
+| **Quant Analysis** | RSI (14-day), SMA (20/50), Daily Returns, Window Functions (SQL) |
+
 
 ## ⚙️ The ETL Pipeline: Post-Market Batch Processing
 The platform’s engine is a fully automated, 3-stage pipeline executed daily via containerized Docker jobs.
@@ -62,6 +63,17 @@ The platform’s engine is a fully automated, 3-stage pipeline executed daily vi
 *   **Business Logic (Gold)**: BigQuery SQL Views perform final aggregations and `LAG()` window functions for time-series continuity.
 *   **Intelligence Sink**: Finalized AI summaries are exported as timestamped `.txt` files to GCS.
 *   **API Delivery**: FastAPI serves the Gold layer and GCS summaries to the React frontend.
+
+
+## Key Metrics & Business Impact
+
+| Metric | Value |
+| :--- | :--- |
+| **Operational Cost** | Minimal / Month (Serverless Optimized) |
+| **Update Frequency** | Daily @ 6:00 PM EST |
+| **Data Accuracy** | 100% (Enforced 19/49-Day Warm-up) |
+| **API Limit** | Global Cap of 50 Requests/Day |
+
 
 ## 🛠️ Data Engineering & Technical Challenges
 
@@ -100,15 +112,7 @@ The platform’s engine is a fully automated, 3-stage pipeline executed daily vi
 *   **Solution**: Implemented a Global Rate Limiter strictly capping model calls at 50 requests per day.
 *   **Impact**: Guaranteed cost predictability while maintaining overhead for daily batch processing.
 
-## Key Metrics & Business Impact
+## **Udaya Krishna Karanam**  
 
-| Metric | Value |
-| :--- | :--- |
-| **Operational Cost** | Minimal / Month (Serverless Optimized) |
-| **Update Frequency** | Daily @ 6:00 PM EST |
-| **Data Accuracy** | 100% (Enforced 19/49-Day Warm-up) |
-| **API Limit** | Global Cap of 50 Requests/Day |
-
-## Skills & Tools
-*   **Infrastructure**: GCP (Cloud Run, BigQuery, GCS, Secret Manager), Docker
-*   **ETL**: Python, Pandas, Cloud Run Jobs, Window Functions (SQL)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-blue?style=flat&logo=linkedin)](https://www.linkedin.com/in/udayakrishnakaranam10)
+[![Email](https://img.shields.io/badge/Email-Contact-red?style=flat&logo=gmail)](mailto:ukrishn10@gmail.com)
