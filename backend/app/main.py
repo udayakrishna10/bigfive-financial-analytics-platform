@@ -203,7 +203,7 @@ def ask(request: AskRequest):
         completion = openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are a neutral stock analyst focusing on BigFive. Do NOT use markdown bolding (e.g., **text**) in your response."},
+                {"role": "system", "content": f"You are a neutral stock analyst focusing on BigFive. Today is {date.today()}. Do NOT use markdown bolding (e.g., **text**) in your response."},
                 {"role": "user", "content": prompt},
             ],
             temperature=0.7,
