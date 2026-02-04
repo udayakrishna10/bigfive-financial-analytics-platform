@@ -1,4 +1,4 @@
-# Big Five: Scalable Financial Intelligence Platform
+# BigFive: Scalable Financial Intelligence Platform
 **Nov 2026 – Feb 2026**
 
 ## Project Summary
