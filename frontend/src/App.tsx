@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Github, Linkedin } from 'lucide-react';
+
 import { Sidebar } from './components/Sidebar.tsx';
 import { MobileNav } from './components/MobileNav';
 import { Dashboard } from './components/Dashboard';
@@ -75,25 +75,6 @@ export default function App() {
         <p className="text-sm text-slate-400 font-bold tracking-wide flex items-center gap-2">
           Designed & Built by <span className="text-blue-400">Udaya Krishna Karanam</span>
         </p>
-
-        <div className="flex items-center gap-4">
-          <a
-            href="https://www.linkedin.com/in/udaya-krishna-karanam/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-slate-400 hover:text-blue-400 transition-colors"
-          >
-            <Linkedin size={18} />
-          </a>
-          <a
-            href="https://github.com/udayakrishna10"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-slate-400 hover:text-white transition-colors"
-          >
-            <Github size={18} />
-          </a>
-        </div>
       </footer>
     </div >
   );
