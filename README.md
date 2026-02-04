@@ -1,9 +1,11 @@
-# Big Five: Financial Intelligence & AI Sentiment Platform
-**Jan 2026 – Feb 2026**
+# Big Five: Scalable Financial Intelligence Platform
+**Nov 2026 – Feb 2026**
 
 ## Project Summary
 An end-to-end financial data engineering and AI solution providing real-time analytics and strategic sentiment for the "Big Tech" giants: Apple, Amazon, Meta, Netflix, and Google. The platform is designed for mathematical precision and cost-efficiency, processing daily market data and high-signal news to generate executive-level insights. Initially built on a heavy Kubernetes (GKE) stack, it was re-engineered into a Serverless, Low-Cost pipeline that automates the lifecycle from ingestion to historical archiving.
-## Live @ https://bigfivebyuk.netlify.app
+
+### Live @ https://bigfivebyuk.netlify.app
+
 
 ## 🔄 Evolution of Architecture
 
@@ -39,11 +41,11 @@ I shifted from GKE and Cloud Composer to a Serverless model to prove that enterp
 
 | Category | Tools & Technologies |
 | :--- | :--- |
-| **Cloud Infrastructure** | GCP, Cloud Run, Cloud Scheduler, Docker, Cloud Run Jobs, Secret Manager |
+| **Cloud Infrastructure** | GCP, Cloud Run, Cloud Scheduler, Docker |
 | **Data Platform** | Google BigQuery, Google Cloud Storage (GCS) |
 | **Backend API** | Python, FastAPI, Pandas, NumPy |
 | **AI & Intelligence** | OpenAI GPT-4o-mini, News Sentiment Engineering |
-| **Quant Analysis** | RSI (14-day), SMA (20/50), Daily Returns, Window Functions (SQL) |
+| **Quant Analysis** | RSI (14-day), SMA (20/50), Daily Returns |
 
 
 ## ⚙️ The ETL Pipeline: Post-Market Batch Processing
@@ -111,6 +113,11 @@ The platform’s engine is a fully automated, 3-stage pipeline executed daily vi
 *   **Problem**: Unrestricted access to OpenAI API risked unexpected billing spikes.
 *   **Solution**: Implemented a Global Rate Limiter strictly capping model calls at 50 requests per day.
 *   **Impact**: Guaranteed cost predictability while maintaining overhead for daily batch processing.
+
+## Skills & Tools
+*   **Infrastructure**: GCP (Cloud Run, BigQuery, GCS, Secret Manager), Docker
+*   **ETL**: Python, Pandas, Cloud Run Jobs, Window Functions (SQL)
+
 
 ## **Udaya Krishna Karanam**  
 
