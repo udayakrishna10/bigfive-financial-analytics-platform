@@ -198,7 +198,7 @@ def ask(request: AskRequest):
     df_str = df.to_string(index=False, max_rows=None)
 
     # OpenAI analysis
-    prompt = f"User question: {question}\n\nRecent Market Data:\n{df_str}\n\nAnalyze trends, momentum, and risks."
+    prompt = f"User question: {question}\n\nRecent Market Data:\n{df_str}\n\nAnalyze trends, momentum, and risks. IMPORTANT: Always mention the specific Date (YYYY-MM-DD) for every price or event you cite."
     try:
         completion = openai_client.chat.completions.create(
             model="gpt-4o-mini",
