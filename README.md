@@ -7,7 +7,7 @@ An end-to-end financial data engineering and AI solution providing real-time ana
 ### Live @ https://bigfivebyuk.netlify.app
 
 
-## 🔄 Evolution of Architecture
+## Evolution of Architecture
 
 The project evolved through two distinct architectural phases to achieve optimal cost-performance ratio.
 
@@ -48,7 +48,7 @@ I shifted from GKE and Cloud Composer to a Serverless model to prove that enterp
 | **Quant Analysis** | RSI (14-day), SMA (20/50), Daily Returns |
 
 
-## ⚙️ The ETL Pipeline: Post-Market Batch Processing
+## The ETL Pipeline: Post-Market Batch Processing
 The platform’s engine is a fully automated, 3-stage pipeline executed daily via containerized Docker jobs.
 
 ### 1. Extraction (Ingestion Layer)
@@ -77,7 +77,7 @@ The platform’s engine is a fully automated, 3-stage pipeline executed daily vi
 | **API Limit** | Global Cap of 50 Requests/Day |
 
 
-## 🛠️ Data Engineering & Technical Challenges
+## Data Engineering & Technical Challenges
 
 ### Challenge 1: Infrastructure Overkill & Cost Optimization
 *   **Problem**: Initial GKE/Composer architecture carried high "idle fees" for a process that only runs once daily.
