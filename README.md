@@ -118,6 +118,13 @@ The platform’s engine is a fully automated, 3-stage pipeline executed daily vi
 *   **Infrastructure**: GCP (Cloud Run, BigQuery, GCS, Secret Manager), Docker
 *   **ETL**: Python, Pandas, Cloud Run Jobs, Window Functions (SQL)
 
+![Dashboard](/images/dashboard.png)
+![Data Architecture](/images/data_architecture.png)
+
+## AI Insights By OpenAI GPT-4o-mini
+
+* [AI Insights By GPT-4o-mini](docs/AI_Insights_By_GPT-4o-mini.pdf)
+
 
 ## **Udaya Krishna Karanam**  
 
