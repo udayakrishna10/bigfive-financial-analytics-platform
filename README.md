@@ -119,7 +119,9 @@ The platform’s engine is a fully automated, 3-stage pipeline executed daily vi
 *   **ETL**: Python, Pandas, Cloud Run Jobs, Window Functions (SQL)
 
 ![Dashboard](/Images/dashboard.png)
-![Data Architecture](/images/data_architecture.png)
+![Data Architecture](/Images/data_architecture.png)
+![News Sentiment](/Images/news sentiment.png)
+
 
 ## AI Insights By OpenAI GPT-4o-mini
 
