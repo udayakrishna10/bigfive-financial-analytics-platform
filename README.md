@@ -115,12 +115,14 @@ The platform’s engine is a fully automated, 3-stage pipeline executed daily vi
 *   **Impact**: Guaranteed cost predictability while maintaining overhead for daily batch processing.
 
 ## Skills & Tools
+
 *   **Infrastructure**: GCP (Cloud Run, BigQuery, GCS, Secret Manager), Docker
 *   **ETL**: Python, Pandas, Cloud Run Jobs, Window Functions (SQL)
 
+## Screenshots
 ![Dashboard](/Images/dashboard.png)
 ![Data Architecture](/Images/data_architecture.png)
-![News Sentiment](/Images/news sentiment.png)
+![News Sentiment](/Images/news_sentiment.png)
 
 
 ## AI Insights By OpenAI GPT-4o-mini
