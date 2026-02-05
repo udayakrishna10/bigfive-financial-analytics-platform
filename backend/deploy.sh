@@ -36,7 +36,7 @@ gcloud run deploy $SERVICE_NAME \
     --platform managed \
     --region $REGION \
     --allow-unauthenticated \
-    --set-env-vars GCP_PROJECT=$PROJECT_ID,GCP_DATASET=faang_dataset \
+    --set-env-vars GCP_PROJECT=$PROJECT_ID,GCP_DATASET=faang_dataset,GOLD_TABLE=gold,OPENAI_API_KEY=$OPENAI_API_KEY,NEWS_API_KEY=$NEWS_API_KEY \
     --memory 512Mi
 
 # 5. Deploy ETL Jobs
