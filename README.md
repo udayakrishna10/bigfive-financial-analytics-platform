@@ -118,6 +118,40 @@ The platform’s engine is a fully automated, 3-stage pipeline executed daily vi
 *   **Infrastructure**: GCP (Cloud Run, BigQuery, GCS, Secret Manager), Docker
 *   **ETL**: Python, Pandas, Cloud Run Jobs, Window Functions (SQL)
 
+## CI/CD Pipeline
+
+The platform uses **GitHub Actions** for automated deployment to Google Cloud Run.
+
+### Deployment Workflow
+- **Trigger**: Push to `main` branch (backend changes)
+- **Build**: Cloud Build creates Docker image
+- **Deploy**: Cloud Run updates service with zero downtime
+- **Rollback**: One-click revert to previous revisions
+
+### Required GitHub Secrets
+Configure these in **Settings → Secrets → Actions**:
+- `GCP_PROJECT_ID` - Your GCP project ID
+- `GCP_SA_KEY` - Service account JSON key
+- `OPENAI_API_KEY` - OpenAI API key
+- `NEWS_API_KEY` - NewsAPI key
+
+### Service Account Permissions
+The CI service account requires:
+- `roles/viewer` - Stream build logs
+- `roles/iam.serviceAccountUser` - Deploy as service accounts
+- `roles/run.admin` - Manage Cloud Run services
+- `roles/cloudscheduler.admin` - Manage scheduled jobs
+
+### Deployment Process
+```bash
+git add .
+git commit -m "Your changes"
+git push origin main
+# Deployment completes automatically in ~2 minutes
+```
+
+**Result**: Backend deploys to Cloud Run, frontend auto-deploys via Netlify.
+
 ## Screenshots
 ![Dashboard](/Images/dashboard.png)
 ![Data Architecture](/Images/data_architecture.png)
