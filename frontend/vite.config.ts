@@ -13,13 +13,9 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  /* server proxy removed - using production API directly */
   server: {
-    proxy: {
-      '/ask': 'http://127.0.0.1:8000',
-      '/chart-data': 'http://127.0.0.1:8000',
-      '/news-sentiment': 'http://127.0.0.1:8000',
-      '/big-five-dashboard': 'http://127.0.0.1:8000',
-      '/health': 'http://127.0.0.1:8000',
-    }
+    // Port 3000 is often used for local dev, but we are connecting to Prod Backend
+    port: 3000
   }
 })
