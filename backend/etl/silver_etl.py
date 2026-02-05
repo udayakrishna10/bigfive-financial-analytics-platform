@@ -3,7 +3,7 @@ import sys
 import logging
 from datetime import datetime, timezone
 import pandas as pd
-import pandas_market_calendars as mcal
+# import pandas_market_calendars as mcal  <-- Removed to reduce dependencies
 from google.cloud import bigquery
 
 # ===========================
@@ -75,15 +75,39 @@ def get_last_trade_date():
         logger.info(f"Silver table missing or error: {e}. Running full ETL.")
         return None
 
-def get_nyse_trading_days(last_trade_date) -> pd.DatetimeIndex:
-    """Return NYSE trading days after last_trade_date."""
-    nyse = mcal.get_calendar("NYSE")
-    start = pd.to_datetime(last_trade_date) + pd.Timedelta(days=1) if last_trade_date else pd.Timestamp.now() - pd.DateOffset(months=6)
-    end = pd.Timestamp.now()
-    schedule = nyse.schedule(start_date=start, end_date=end)
-    trading_days = schedule.index
-    logger.info(f"NYSE trading days to process: {len(trading_days)}")
-    return trading_days
+def get_dates_to_process(last_trade_date):
+    """
+    Return distinct dates from Bronze that are later than the last Silver date.
+    This ensures we process whatever data is available (Data-Driven), 
+    rather than relying on an external calendar library.
+    """
+    try:
+        if last_trade_date:
+            query = f"""
+                SELECT DISTINCT DATE(timestamp) as trade_date 
+                FROM `{bronze_ref}` 
+                WHERE DATE(timestamp) > '{last_trade_date}'
+                ORDER BY trade_date ASC
+            """
+        else:
+            query = f"""
+                SELECT DISTINCT DATE(timestamp) as trade_date 
+                FROM `{bronze_ref}` 
+                ORDER BY trade_date ASC
+            """
+            
+        df = client.query(query).to_dataframe()
+        if df.empty:
+            logger.info("No new dates found in Bronze table.")
+            return []
+            
+        dates = df["trade_date"].tolist()
+        logger.info(f"Found {len(dates)} new days to process: {[str(d) for d in dates]}")
+        return dates
+        
+    except Exception as e:
+        logger.error(f"Failed to fetch dates from Bronze: {e}")
+        return []
 
 def build_incremental_sql(last_trade_date) -> str:
     """Incremental SQL to build Silver table from Bronze."""
@@ -158,13 +182,12 @@ def main():
     # Get the last trade date from Silver
     last_trade_date = get_last_trade_date()
 
-    # Get NYSE trading days after last_trade_date
-    trading_days = get_nyse_trading_days(last_trade_date)
+    # Get days to process directly from Bronze Data
+    new_dates = get_dates_to_process(last_trade_date)
 
-    if len(trading_days) == 0:
-        logger.info("No new trading days found in NYSE calendar.")
-        if last_trade_date is not None:
-            return
+    if not new_dates:
+        logger.info("Silver ETL is up to date.")
+        return
 
     # Build incremental SQL
     sql = build_incremental_sql(last_trade_date)
