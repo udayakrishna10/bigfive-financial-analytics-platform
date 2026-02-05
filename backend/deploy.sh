@@ -71,53 +71,54 @@ gcloud run jobs deploy gold-etl-job \
 
 # 6. Schedule Jobs (Cloud Scheduler)
 # Schedule: Bronze (4:30 PM ET), Silver (4:45 PM ET), Gold (5:00 PM ET)
-# Converted to Cron (UTC roughly or ET timezone)
 
 echo "Creating/Updating Cloud Scheduler Jobs..."
 
-# Bronze - 4:15 PM ET (Closing Bell + 15m)
-gcloud scheduler jobs create http bronze-daily-trigger \
-    --location $REGION \
-    --item-type=run-job \
-    --target-job-name=bronze-etl-job \
-    --schedule="15 16 * * 1-5" \
-    --time-zone="America/New_York" \
-    --attempt-deadline=320s || \
-    gcloud scheduler jobs update http bronze-daily-trigger \
-    --location $REGION \
-    --item-type=run-job \
-    --target-job-name=bronze-etl-job \
-    --schedule="15 16 * * 1-5" \
-    --time-zone="America/New_York"
+# Function to create/update scheduler for Cloud Run Job
+create_scheduler() {
+    JOB_NAME=$1
+    SCHEDULER_NAME=$2
+    SCHEDULE=$3
+    
+    # URL for Cloud Run Job execution (REST API)
+    # Note: Requires Cloud Run Admin or Invoker role for the service account
+    URI="https://$REGION-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/$PROJECT_ID/jobs/$JOB_NAME:run"
+    
+    # Fetch Project Number to construct default Compute SA email
+    PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
+    SA_EMAIL="${PROJECT_NUMBER}-compute@developer.gserviceaccount.com"
+    
+    echo "Using Service Account for Scheduler: $SA_EMAIL"
+
+    echo "Scheduling $JOB_NAME via $SCHEDULER_NAME ($SCHEDULE)..."
+    
+    gcloud scheduler jobs create http $SCHEDULER_NAME \
+        --location $REGION \
+        --schedule="$SCHEDULE" \
+        --time-zone="America/New_York" \
+        --uri="$URI" \
+        --http-method=POST \
+        --oauth-service-account-email="$SA_EMAIL" \
+        --attempt-deadline=320s \
+        --quiet || \
+    gcloud scheduler jobs update http $SCHEDULER_NAME \
+        --location $REGION \
+        --schedule="$SCHEDULE" \
+        --time-zone="America/New_York" \
+        --uri="$URI" \
+        --http-method=POST \
+        --oauth-service-account-email="$SA_EMAIL" \
+        --attempt-deadline=320s \
+        --quiet
+}
+
+# Bronze - 4:15 PM ET
+create_scheduler "bronze-etl-job" "bronze-daily-trigger" "15 16 * * 1-5"
 
 # Silver - 4:30 PM ET
-gcloud scheduler jobs create http silver-daily-trigger \
-    --location $REGION \
-    --item-type=run-job \
-    --target-job-name=silver-etl-job \
-    --schedule="30 16 * * 1-5" \
-    --time-zone="America/New_York" \
-    --attempt-deadline=320s || \
-    gcloud scheduler jobs update http silver-daily-trigger \
-    --location $REGION \
-    --item-type=run-job \
-    --target-job-name=silver-etl-job \
-    --schedule="30 16 * * 1-5" \
-    --time-zone="America/New_York"
+create_scheduler "silver-etl-job" "silver-daily-trigger" "30 16 * * 1-5"
 
 # Gold - 4:45 PM ET
-gcloud scheduler jobs create http gold-daily-trigger \
-    --location $REGION \
-    --item-type=run-job \
-    --target-job-name=gold-etl-job \
-    --schedule="45 16 * * 1-5" \
-    --time-zone="America/New_York" \
-    --attempt-deadline=320s || \
-    gcloud scheduler jobs update http gold-daily-trigger \
-    --location $REGION \
-    --item-type=run-job \
-    --target-job-name=gold-etl-job \
-    --schedule="45 16 * * 1-5" \
-    --time-zone="America/New_York"
+create_scheduler "gold-etl-job" "gold-daily-trigger" "45 16 * * 1-5"
 
 echo "Deployment Complete! 🚀"

@@ -1,0 +1,38 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'  # Only trigger if backend code changes
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  # You need to add GCP_PROJECT_ID and GCP_SA_KEY to your GitHub Repository Secrets
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Make script executable
+        run: chmod +x backend/deploy.sh
+
+      - name: Deploy
+        run: ./backend/deploy.sh
+        shell: bash

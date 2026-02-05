@@ -224,3 +224,4 @@ google-cloud-sdk/
 
 # Local Netlify folder
 .netlify
+key.json
