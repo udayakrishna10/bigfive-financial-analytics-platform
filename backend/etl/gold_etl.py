@@ -64,7 +64,13 @@ def run_gold_etl():
         cumulative_return FLOAT64,
         ma_20 FLOAT64,
         ma_50 FLOAT64,
-        rsi_14 FLOAT64
+        rsi_14 FLOAT64,
+        macd_line FLOAT64,
+        macd_signal FLOAT64,
+        macd_histogram FLOAT64,
+        bb_upper FLOAT64,
+        bb_middle FLOAT64,
+        bb_lower FLOAT64
     )
     PARTITION BY trade_date
     CLUSTER BY ticker;
@@ -126,7 +132,55 @@ def run_gold_etl():
               ))
             )
             ELSE NULL
-          END AS rsi_14
+          END AS rsi_14,
+
+          -- MACD (12-day EMA - 26-day EMA)
+          CASE
+            WHEN COUNT(*) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 25 PRECEDING AND CURRENT ROW) = 26
+            THEN (
+              AVG(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) -
+              AVG(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 25 PRECEDING AND CURRENT ROW)
+            )
+            ELSE NULL
+          END AS macd_line,
+
+          -- MACD Signal (9-day SMA of MACD)
+          CASE
+            WHEN COUNT(*) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 33 PRECEDING AND CURRENT ROW) = 34
+            THEN AVG(
+              AVG(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) -
+              AVG(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 25 PRECEDING AND CURRENT ROW)
+            ) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 8 PRECEDING AND CURRENT ROW)
+            ELSE NULL
+          END AS macd_signal,
+
+          -- MACD Histogram (MACD - Signal)
+          CASE
+            WHEN COUNT(*) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 33 PRECEDING AND CURRENT ROW) = 34
+            THEN macd_line - macd_signal
+            ELSE NULL
+          END AS macd_histogram,
+
+          -- Bollinger Bands (20-day SMA ± 2 standard deviations)
+          CASE
+            WHEN COUNT(*) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) = 20
+            THEN AVG(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) +
+                 (2 * STDDEV(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW))
+            ELSE NULL
+          END AS bb_upper,
+
+          CASE
+            WHEN COUNT(*) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) = 20
+            THEN AVG(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW)
+            ELSE NULL
+          END AS bb_middle,
+
+          CASE
+            WHEN COUNT(*) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) = 20
+            THEN AVG(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) -
+                 (2 * STDDEV(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW))
+            ELSE NULL
+          END AS bb_lower
         FROM daily
       )
 
@@ -150,7 +204,13 @@ def run_gold_etl():
         cumulative_return,
         ma_20,
         ma_50,
-        rsi_14
+        rsi_14,
+        macd_line,
+        macd_signal,
+        macd_histogram,
+        bb_upper,
+        bb_middle,
+        bb_lower
       )
       VALUES (
         src.trade_date,
@@ -165,7 +225,13 @@ def run_gold_etl():
         src.cumulative_return,
         src.ma_20,
         src.ma_50,
-        src.rsi_14
+        src.rsi_14,
+        src.macd_line,
+        src.macd_signal,
+        src.macd_histogram,
+        src.bb_upper,
+        src.bb_middle,
+        src.bb_lower
       );
     """
 
