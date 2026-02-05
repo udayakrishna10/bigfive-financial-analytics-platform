@@ -70,7 +70,10 @@ def run_gold_etl():
         macd_histogram FLOAT64,
         bb_upper FLOAT64,
         bb_middle FLOAT64,
-        bb_lower FLOAT64
+        bb_lower FLOAT64,
+        vma_20 FLOAT64,
+        ema_12 FLOAT64,
+        ema_26 FLOAT64
     )
     PARTITION BY trade_date
     CLUSTER BY ticker;
@@ -163,7 +166,28 @@ def run_gold_etl():
             THEN AVG(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) -
                  (2 * STDDEV(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW))
             ELSE NULL
-          END AS bb_lower
+          END AS bb_lower,
+
+          -- Volume Moving Average (20-day)
+          CASE
+            WHEN COUNT(*) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) = 20
+            THEN AVG(total_volume) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW)
+            ELSE NULL
+          END AS vma_20,
+
+          -- EMA-12 (using simple moving average as approximation)
+          CASE
+            WHEN COUNT(*) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) = 12
+            THEN AVG(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 11 PRECEDING AND CURRENT ROW)
+            ELSE NULL
+          END AS ema_12,
+
+          -- EMA-26 (using simple moving average as approximation)
+          CASE
+            WHEN COUNT(*) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 25 PRECEDING AND CURRENT ROW) = 26
+            THEN AVG(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 25 PRECEDING AND CURRENT ROW)
+            ELSE NULL
+          END AS ema_26
         FROM daily
       ),
 
@@ -218,7 +242,10 @@ def run_gold_etl():
         macd_histogram,
         bb_upper,
         bb_middle,
-        bb_lower
+        bb_lower,
+        vma_20,
+        ema_12,
+        ema_26
       )
       VALUES (
         src.trade_date,
@@ -239,7 +266,10 @@ def run_gold_etl():
         src.macd_histogram,
         src.bb_upper,
         src.bb_middle,
-        src.bb_lower
+        src.bb_lower,
+        src.vma_20,
+        src.ema_12,
+        src.ema_26
       );
     """
 

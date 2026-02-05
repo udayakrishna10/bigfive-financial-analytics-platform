@@ -186,6 +186,67 @@ class AskRequest(BaseModel):
 def health():
     return {"status": "ok", "service": "bigfive-backend"}
 
+@app.get("/crypto")
+def get_crypto_prices():
+    """Get Bitcoin and Ethereum prices from CoinGecko (free API)"""
+    try:
+        url = "https://api.coingecko.com/api/v3/simple/price"
+        params = {
+            'ids': 'bitcoin,ethereum',
+            'vs_currencies': 'usd',
+            'include_24hr_change': 'true',
+            'include_market_cap': 'true',
+            'include_24hr_vol': 'true'
+        }
+        response = http_session.get(url, params=params, timeout=5)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        logger.error(f"Failed to fetch crypto prices: {e}")
+        raise HTTPException(status_code=503, detail="Crypto price service unavailable")
+
+@app.get("/screener")
+def stock_screener(
+    rsi_max: int = None,
+    rsi_min: int = None,
+    macd_positive: bool = None,
+    price_min: float = None,
+    price_max: float = None
+):
+    """Screen stocks based on technical indicators"""
+    try:
+        conditions = ["trade_date = (SELECT MAX(trade_date) FROM `{}.{}.{}`".format(PROJECT_ID, DATASET, GOLD_TABLE) + ")"]
+        
+        if rsi_max is not None:
+            conditions.append(f"rsi_14 <= {rsi_max}")
+        if rsi_min is not None:
+            conditions.append(f"rsi_14 >= {rsi_min}")
+        if macd_positive is not None:
+            if macd_positive:
+                conditions.append("macd_histogram > 0")
+            else:
+                conditions.append("macd_histogram < 0")
+        if price_min is not None:
+            conditions.append(f"close >= {price_min}")
+        if price_max is not None:
+            conditions.append(f"close <= {price_max}")
+        
+        where_clause = " AND ".join(conditions)
+        sql = f"""
+            SELECT ticker, close, daily_return, rsi_14, macd_line, macd_histogram, 
+                   bb_upper, bb_lower, vma_20
+            FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
+            WHERE {where_clause}
+            ORDER BY ticker
+        """
+        
+        df = bq_client.query(sql).to_dataframe()
+        return df.to_dict(orient="records")
+    except Exception as e:
+        logger.error(f"Screener failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Screener error: {str(e)}")
+
+
 @app.post("/ask")
 def ask(request: AskRequest):
     check_daily_limit()
