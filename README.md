@@ -120,7 +120,7 @@ The platform’s engine is a fully automated, 3-stage pipeline executed daily vi
 
 ## CI/CD Pipeline
 
-The platform uses **GitHub Actions** for automated deployment. On every push to `main`, the workflow triggers Cloud Build to create a Docker image, deploys it to Cloud Run with zero downtime, and automatically injects secrets (`OPENAI_API_KEY`, `NEWS_API_KEY`) from GitHub repository settings. The CI service account is configured with `roles/viewer`, `roles/iam.serviceAccountUser`, `roles/run.admin`, and `roles/cloudscheduler.admin` to enable full deployment automation. The frontend auto-deploys via Netlify, and previous Cloud Run revisions are retained for one-click rollback if needed.
+The platform uses **GitHub Actions** for automated deployment. On every push to main branch, the workflow triggers Cloud Build to create a Docker image, deploys it to Cloud Run with zero downtime, and automatically injects secrets from GitHub repository settings. The CI service account is configured with permissions to enable full deployment automation. The frontend auto-deploys via Netlify, and previous Cloud Run revisions are retained for one-click rollback if needed.
 
 
 ## Screenshots
