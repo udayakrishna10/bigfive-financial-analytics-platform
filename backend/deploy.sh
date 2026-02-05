@@ -1,8 +1,12 @@
 #!/bin/bash
 set -e
 
+# Ensure we are executing from the script's directory
+cd "$(dirname "$0")"
+
 # Configuration
-PROJECT_ID=$(gcloud config get-value project)
+# prioritized env var (from CI) or fallback to gcloud config (local)
+PROJECT_ID=${PROJECT_ID:-$(gcloud config get-value project)}
 REGION="us-central1"
 REPO_NAME="faang-repo"
 IMAGE_NAME="faang-backend"

@@ -129,20 +129,6 @@ The platform’s engine is a fully automated, 3-stage pipeline executed daily vi
 * [AI Insights By GPT-4o-mini](docs/AI_Insights_By_GPT-4o-mini.pdf)
 
 
-## Deployment & Operations
-
-The entire backend and data pipeline is fully automated and can be deployed with a single command.
-
-### One-Click Deployment
-To deploy the API, build the Docker containers, and schedule the ETL jobs:
-
-```bash
-./backend/deploy.sh
-```
-
-### Automation Architecture
-*   **Infrastructure-as-Code**: `deploy.sh` handles Artifact Registry creation, Cloud Run Service updates, and Cloud Scheduler configuration.
-*   **Unified Docker Image**: A single optimized Python 3.11 image (`backend/Dockerfile`) powers both the live API and the batch ETL jobs.
 *   **Scheduled Jobs**:
     *   **Bronze Ingestion**: Runs daily at 4:15 PM ET via Cloud Scheduler.
     *   **Silver Transformation**: Runs daily at 4:30 PM ET.
