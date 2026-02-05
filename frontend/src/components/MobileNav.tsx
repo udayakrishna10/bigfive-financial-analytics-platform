@@ -1,5 +1,5 @@
 
-import { LayoutDashboard, TrendingUp, Cpu, Newspaper, Activity } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, Cpu, Newspaper, Activity, Server } from 'lucide-react';
 
 interface MobileNavProps {
     activeTab: string;
@@ -12,6 +12,7 @@ export const MobileNav = ({ activeTab, setActiveTab }: MobileNavProps) => {
         { id: 'analytics', icon: TrendingUp, label: 'Chart' },
         { id: 'insights', icon: Cpu, label: 'AI' },
         { id: 'news', icon: Newspaper, label: 'News' },
+        { id: 'architecture', icon: Server, label: 'Arch' },
         { id: 'health', icon: Activity, label: 'Health' }, // Optional, maybe hide regarding screen space
     ];
 

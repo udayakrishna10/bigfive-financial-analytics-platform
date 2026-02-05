@@ -6,6 +6,7 @@ import { ChartSection } from './components/ChartSection';
 import { AIChat } from './components/AIChat.tsx';
 import { SentimentFeed } from './components/SentimentFeed';
 import { HealthView } from './components/HealthView';
+import { ArchitectureView } from './components/ArchitectureView';
 import { Toaster } from 'sonner';
 
 
@@ -18,6 +19,7 @@ export default function App() {
       case 'analytics': return <ChartSection />;
       case 'insights': return <AIChat />;
       case 'news': return <SentimentFeed />;
+      case 'architecture': return <ArchitectureView />;
       case 'health': return <HealthView />;
       default: return <Dashboard />;
     }

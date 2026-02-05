@@ -11,15 +11,14 @@ An end-to-end financial data engineering and AI solution providing real-time ana
 
 The project evolved through two distinct architectural phases to achieve optimal cost-performance ratio.
 
-### Phase 1: Enterprise Native (Initial Build)
-*   **Infrastructure**: Google Kubernetes Engine (GKE) Autopilot.
-*   **Orchestration**: Apache Airflow on Cloud Composer.
-*   **Problem**: High idle costs (~$100+/mo) for a simple daily batch application.
-
-### Phase 2: Serverless Optimization (Current)
-*   **Infrastructure**: Cloud Run & Cloud Run Jobs.
-*   **Orchestration**: Native Cloud Scheduler.
-*   **Result**: Identical performance with **99% cost reduction**, leveraging the GCP Serverless model for compute and storage.
+| Feature | Phase 1: Enterprise Native (GKE) | Phase 2: Serverless Optimized (Cloud Run) |
+| :--- | :--- | :--- |
+| **Compute** | GKE Autopilot (Always-On) | Cloud Run Jobs (Scale-to-Zero) |
+| **Orchestration** | Apache Airflow (Cloud Composer) | Native Cloud Scheduler |
+| **Storage Strategy** | Monolithic BigQuery Storage | BigQuery + GCS "Intelligence Sink" |
+| **Operational Cost** | High (~$100+/month idle fees) | Minimal (99% Reduction) |
+| **Maintenance** | Cluster & Node Management | Zero-Ops (Managed Serverless) |
+| **Best Use Case** | Continuous Streaming / High Traffic | Daily Post-Market Batch Processing |
 
 ## Architecture: The "Low-Cost" Serverless Evolution
 The platform follows a decoupled, batch-oriented architecture optimized for the 6:00 PM EST post-market settlement:

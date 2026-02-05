@@ -4,7 +4,8 @@ import {
   BarChart3,
   Sparkles,
   Newspaper,
-  Activity
+  Activity,
+  Server
 } from 'lucide-react';
 
 
@@ -19,7 +20,8 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'insights', label: 'AI Insights', icon: Sparkles },
     { id: 'news', label: 'Sentiment', icon: Newspaper },
-    { id: 'health', label: 'System and Data Architecture', icon: Activity },
+    { id: 'architecture', label: 'Architecture', icon: Activity },
+    { id: 'health', label: 'System Health', icon: Server },
   ];
 
   return (
