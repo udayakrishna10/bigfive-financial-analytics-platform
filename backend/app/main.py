@@ -3,15 +3,14 @@ import re
 import math
 import logging
 import time
-import math
-import logging
-import time
 import uuid
 from datetime import date, datetime, timezone
 
 import numpy as np
 import pandas as pd
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from google.cloud import bigquery, storage
@@ -76,6 +75,17 @@ except Exception as e:
     # We do not fallback to mock mode anymore
     raise
 
+# Configure retry strategy for external API calls
+retry_strategy = Retry(
+    total=3,
+    backoff_factor=1,
+    status_forcelist=[429, 500, 502, 503, 504],
+)
+adapter = HTTPAdapter(max_retries=retry_strategy)
+http_session = requests.Session()
+http_session.mount("https://", adapter)
+http_session.mount("http://", adapter)
+
 # ===========================
 # FASTAPI APP SETUP
 # ===========================
@@ -85,9 +95,16 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# CORS configuration - restrict to specific origins
+ALLOWED_ORIGINS = [
+    "https://bigfivebyuk.netlify.app",
+    "http://localhost:5173",  # Local development
+    "http://localhost:3000",  # Alternative local port
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # allow all origins; adjust for production
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -173,8 +190,20 @@ def health():
 def ask(request: AskRequest):
     check_daily_limit()
     question = (request.question or "").strip()
+    
+    # Input validation
     if not question:
         raise HTTPException(status_code=400, detail="Question must not be empty.")
+    
+    if len(question) > 500:
+        raise HTTPException(status_code=400, detail="Question too long (max 500 characters).")
+    
+    # Basic prompt injection prevention
+    forbidden_words = ["ignore", "disregard", "system prompt", "instructions"]
+    if any(word in question.lower() for word in forbidden_words):
+        raise HTTPException(status_code=400, detail="Invalid question content.")
+    
+    logger.info(f"Processing question: {question[:100]}...")  # Log first 100 chars
 
     # Fetch recent market data (Last 1 Year to allow robust analysis)
     query = f"""
