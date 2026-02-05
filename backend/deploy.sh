@@ -16,8 +16,8 @@ IMAGE_URI="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$IMAGE_NAME:latest"
 echo "Using Project DB: $PROJECT_ID"
 
 # 1. Enable Services
-echo "Enabling Services..."
-gcloud services enable run.googleapis.com cloudscheduler.googleapis.com artifactregistry.googleapis.com
+# echo "Enabling Services..."
+# gcloud services enable run.googleapis.com cloudscheduler.googleapis.com artifactregistry.googleapis.com
 
 # 2. Create Artifact Registry if not exists
 if ! gcloud artifacts repositories describe $REPO_NAME --location=$REGION; then
