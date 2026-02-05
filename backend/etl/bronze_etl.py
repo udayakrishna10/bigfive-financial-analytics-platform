@@ -10,8 +10,8 @@ from google.cloud import bigquery
 # ===========================
 # CONFIGURATION
 # ===========================
-PROJECT_ID = os.environ.get("GCP_PROJECT", "big-five-analytics")
-DATASET_ID = os.environ.get("GCP_DATASET", "big_five_dataset")
+PROJECT_ID = os.environ.get("GCP_PROJECT", "faang-stock-analytics")
+DATASET_ID = os.environ.get("GCP_DATASET", "faang_dataset")
 TABLE_ID = os.environ.get("BRONZE_TABLE", "bronze")
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO").upper()
 
@@ -59,7 +59,7 @@ def get_start_date() -> pd.Timestamp:
         # This ensures that if the market was still open when you last fetched,
         # you get the final official closing price.
         start_date = last_ts.tz_convert(EASTERN_TZ)
-        logger.info("Incremental run, checking from %s", start_date.date())
+        logger.info("Incremental run, checking from %s (Inclusive)", start_date.date())
     except Exception:
         start_date = pd.Timestamp.now(EASTERN_TZ) - pd.DateOffset(months=6)
         logger.info("First run, fetching last 6 months (%s)", start_date.date())
@@ -136,9 +136,14 @@ def deduplicate_against_bq(df: pd.DataFrame) -> pd.DataFrame:
         if not existing.empty:
             existing["timestamp"] = pd.to_datetime(existing["timestamp"], utc=True)
             before = len(df)
-            # Left join to find rows in df not in existing
+            
+            # Anti-join: Keep only rows in DF that are NOT in BQ
+            # This logic protects against duplicates but prevents updates to existing rows.
+            # To allow updates, one would typically DELETE matching rows from BQ first.
+            # For this 'Bronze' append-only pattern, ignoring duplicates is standard.
             df = df.merge(existing, on=["timestamp", "ticker"], how="left", indicator=True)
             df = df[df["_merge"] == "left_only"].drop(columns=["_merge"])
+            
             logger.info("Removed %d duplicates already in BQ", before - len(df))
     except Exception as e:
         logger.warning(f"Could not deduplicate against BQ (table might not exist yet): {e}")

@@ -9,8 +9,8 @@ from google.cloud import bigquery
 # ===========================
 # CONFIG
 # ===========================
-PROJECT_ID = os.getenv("GCP_PROJECT", "big-five-analytics")
-DATASET = os.getenv("GCP_DATASET", "big_five_dataset")
+PROJECT_ID = os.getenv("GCP_PROJECT", "faang-stock-analytics")
+DATASET = os.getenv("GCP_DATASET", "faang_dataset")
 BRONZE_TABLE = os.getenv("BRONZE_TABLE", "bronze")
 SILVER_TABLE = os.getenv("SILVER_TABLE", "silver")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
@@ -60,7 +60,7 @@ def ensure_silver_table():
     client.query(create_sql).result()
     logger.info(f"Silver table ensured: {silver_ref}")
 
-def get_last_trade_date() -> str | None:
+def get_last_trade_date():
     """Return last trade_date from Silver table; None if empty or missing."""
     try:
         query = f"SELECT MAX(trade_date) AS last_trade_date FROM `{silver_ref}`"
@@ -75,7 +75,7 @@ def get_last_trade_date() -> str | None:
         logger.info(f"Silver table missing or error: {e}. Running full ETL.")
         return None
 
-def get_nyse_trading_days(last_trade_date: str | None) -> pd.DatetimeIndex:
+def get_nyse_trading_days(last_trade_date) -> pd.DatetimeIndex:
     """Return NYSE trading days after last_trade_date."""
     nyse = mcal.get_calendar("NYSE")
     start = pd.to_datetime(last_trade_date) + pd.Timedelta(days=1) if last_trade_date else pd.Timestamp.now() - pd.DateOffset(months=6)
@@ -85,7 +85,7 @@ def get_nyse_trading_days(last_trade_date: str | None) -> pd.DatetimeIndex:
     logger.info(f"NYSE trading days to process: {len(trading_days)}")
     return trading_days
 
-def build_incremental_sql(last_trade_date: str | None) -> str:
+def build_incremental_sql(last_trade_date) -> str:
     """Incremental SQL to build Silver table from Bronze."""
     bronze_filter = f"WHERE DATE(timestamp) >= DATE_SUB('{last_trade_date}', INTERVAL 1 DAY)" if last_trade_date else ""
 

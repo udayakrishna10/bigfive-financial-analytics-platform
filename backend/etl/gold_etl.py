@@ -7,8 +7,8 @@ from google.cloud import bigquery
 # ===========================
 # CONFIGURATION
 # ===========================
-PROJECT_ID = os.getenv("GCP_PROJECT", "big-five-analytics")
-DATASET_ID = os.getenv("DATASET", "big_five_dataset")
+PROJECT_ID = os.getenv("GCP_PROJECT", "faang-stock-analytics")
+DATASET_ID = os.getenv("DATASET", "faang_dataset")
 SILVER_TABLE = os.getenv("SILVER_TABLE", "silver")
 GOLD_TABLE = os.getenv("GOLD_TABLE", "gold")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
