@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
-import { API_BASE_URL } from '../config';
+import { API_CONFIG } from '../config';
 
 interface CryptoData {
     bitcoin: {
@@ -22,7 +22,7 @@ export function CryptoCards() {
     useEffect(() => {
         const fetchCrypto = async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/crypto`);
+                const response = await fetch(`${API_CONFIG.BASE_URL}/crypto`);
                 const data = await response.json();
                 setCrypto(data);
             } catch (error) {
@@ -64,12 +64,12 @@ export function CryptoCards() {
                 return (
                     <div
                         key={symbol}
-                        className="bg-gradient-to-br from-slate-900/80 to-slate-800/50 rounded-xl p-6 border border-slate-700/50 hover:border-slate-600 transition-all"
+                        className="bg-gradient-to-br from-gray-100 to-gray-50 dark:from-slate-900/80 dark:to-slate-800/50 rounded-xl p-6 border border-gray-300 dark:border-slate-700/50 hover:border-gray-400 dark:hover:border-slate-600 transition-all"
                     >
                         <div className="flex items-center justify-between mb-4">
                             <div>
-                                <h3 className="text-lg font-bold text-white">{name}</h3>
-                                <p className="text-sm text-slate-400">{symbol}</p>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{name}</h3>
+                                <p className="text-sm text-gray-600 dark:text-slate-400">{symbol}</p>
                             </div>
                             <div className={`text-2xl ${color === 'orange' ? 'text-orange-500' : 'text-blue-500'}`}>
                                 ₿
@@ -77,10 +77,10 @@ export function CryptoCards() {
                         </div>
                         <div className="flex items-end justify-between">
                             <div>
-                                <p className="text-3xl font-bold text-white">
+                                <p className="text-3xl font-bold text-gray-900 dark:text-white">
                                     ${data.usd.toLocaleString()}
                                 </p>
-                                <p className="text-xs text-slate-500 mt-1">
+                                <p className="text-xs text-gray-600 dark:text-slate-500 mt-1">
                                     MCap: ${(data.usd_market_cap / 1e9).toFixed(1)}B
                                 </p>
                             </div>
