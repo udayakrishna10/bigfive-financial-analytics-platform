@@ -52,7 +52,21 @@ def ensure_silver_table():
         close FLOAT64,
         total_volume INT64,
         ingested_at TIMESTAMP,
-        daily_return FLOAT64
+        daily_return FLOAT64,
+        -- MACD Components
+        ema_12 FLOAT64,
+        ema_26 FLOAT64,
+        macd_line FLOAT64,
+        macd_signal FLOAT64,
+        macd_histogram FLOAT64,
+        -- Bollinger Bands
+        bb_middle FLOAT64,
+        bb_upper FLOAT64,
+        bb_lower FLOAT64,
+        bb_width FLOAT64,
+        -- Volume Analysis
+        vma_20 FLOAT64,
+        volume_ratio FLOAT64
     )
     PARTITION BY trade_date
     CLUSTER BY ticker
@@ -137,10 +151,75 @@ def build_incremental_sql(last_trade_date) -> str:
             ) AS daily_return
         FROM daily
     ),
+    indicators AS (
+        SELECT
+            *,
+            -- EMA calculations for MACD (using approximation with weighted moving average)
+            AVG(close) OVER (
+                PARTITION BY ticker 
+                ORDER BY trade_date 
+                ROWS BETWEEN 11 PRECEDING AND CURRENT ROW
+            ) AS ema_12,
+            AVG(close) OVER (
+                PARTITION BY ticker 
+                ORDER BY trade_date 
+                ROWS BETWEEN 25 PRECEDING AND CURRENT ROW
+            ) AS ema_26,
+            -- Bollinger Bands components
+            AVG(close) OVER (
+                PARTITION BY ticker 
+                ORDER BY trade_date 
+                ROWS BETWEEN 19 PRECEDING AND CURRENT ROW
+            ) AS bb_middle,
+            STDDEV(close) OVER (
+                PARTITION BY ticker 
+                ORDER BY trade_date 
+                ROWS BETWEEN 19 PRECEDING AND CURRENT ROW
+            ) AS bb_std,
+            -- Volume Moving Average
+            AVG(total_volume) OVER (
+                PARTITION BY ticker 
+                ORDER BY trade_date 
+                ROWS BETWEEN 19 PRECEDING AND CURRENT ROW
+            ) AS vma_20
+        FROM returns
+    ),
+    macd_calc AS (
+        SELECT
+            *,
+            -- MACD Line = EMA12 - EMA26
+            (ema_12 - ema_26) AS macd_line
+        FROM indicators
+    ),
+    macd_signal_calc AS (
+        SELECT
+            *,
+            -- MACD Signal = 9-period SMA of MACD Line
+            AVG(macd_line) OVER (
+                PARTITION BY ticker 
+                ORDER BY trade_date 
+                ROWS BETWEEN 8 PRECEDING AND CURRENT ROW
+            ) AS macd_signal
+        FROM macd_calc
+    ),
+    final_indicators AS (
+        SELECT
+            * EXCEPT (bb_std),
+            -- MACD Histogram = MACD Line - Signal
+            (macd_line - macd_signal) AS macd_histogram,
+            -- Bollinger Bands
+            (bb_middle + (2 * bb_std)) AS bb_upper,
+            (bb_middle - (2 * bb_std)) AS bb_lower,
+            -- BB Width = (Upper - Lower) / Middle
+            SAFE_DIVIDE((bb_middle + (2 * bb_std)) - (bb_middle - (2 * bb_std)), bb_middle) AS bb_width,
+            -- Volume Ratio = Current Volume / VMA
+            SAFE_DIVIDE(total_volume, vma_20) AS volume_ratio
+        FROM macd_signal_calc
+    ),
     incremental AS (
         SELECT * 
-        FROM returns
-        WHERE trade_date > '{last_trade_date}' OR '{last_trade_date}' IS NULL
+        FROM final_indicators
+        WHERE {f"trade_date > '{last_trade_date}'" if last_trade_date else "TRUE"}
     )
     SELECT * FROM incremental
     """
@@ -160,10 +239,26 @@ def merge_into_silver(query: str):
         close = source.close,
         total_volume = source.total_volume,
         ingested_at = source.ingested_at,
-        daily_return = source.daily_return
+        daily_return = source.daily_return,
+        ema_12 = source.ema_12,
+        ema_26 = source.ema_26,
+        macd_line = source.macd_line,
+        macd_signal = source.macd_signal,
+        macd_histogram = source.macd_histogram,
+        bb_middle = source.bb_middle,
+        bb_upper = source.bb_upper,
+        bb_lower = source.bb_lower,
+        bb_width = source.bb_width,
+        vma_20 = source.vma_20,
+        volume_ratio = source.volume_ratio
     WHEN NOT MATCHED THEN
-      INSERT (trade_date, ticker, open, high, low, close, total_volume, ingested_at, daily_return)
-      VALUES (source.trade_date, source.ticker, source.open, source.high, source.low, source.close, source.total_volume, source.ingested_at, source.daily_return)
+      INSERT (trade_date, ticker, open, high, low, close, total_volume, ingested_at, daily_return,
+              ema_12, ema_26, macd_line, macd_signal, macd_histogram,
+              bb_middle, bb_upper, bb_lower, bb_width, vma_20, volume_ratio)
+      VALUES (source.trade_date, source.ticker, source.open, source.high, source.low, source.close, 
+              source.total_volume, source.ingested_at, source.daily_return,
+              source.ema_12, source.ema_26, source.macd_line, source.macd_signal, source.macd_histogram,
+              source.bb_middle, source.bb_upper, source.bb_lower, source.bb_width, source.vma_20, source.volume_ratio)
     """
     logger.info("Running MERGE query for Silver table...")
     client.query(merge_sql).result()

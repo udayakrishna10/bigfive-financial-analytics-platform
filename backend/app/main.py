@@ -28,12 +28,17 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 BIG_FIVE_TICKERS = ["AAPL", "AMZN", "META", "NFLX", "GOOGL"]
+CRYPTO_TICKERS = ["BTC", "ETH"]
+ALL_TICKERS = BIG_FIVE_TICKERS + CRYPTO_TICKERS
+
 TICKER_TO_COMPANY = {
     "AAPL": "Apple",
     "AMZN": "Amazon",
     "META": "Meta",
     "NFLX": "Netflix",
     "GOOGL": "Google",
+    "BTC": "Bitcoin",
+    "ETH": "Ethereum",
 }
 FINANCE_DOMAINS = ",".join([
     "cnbc.com", "finance.yahoo.com", "bloomberg.com", "reuters.com", "wsj.com", "barrons.com"
@@ -100,6 +105,7 @@ ALLOWED_ORIGINS = [
     "https://bigfivebyuk.netlify.app",
     "http://localhost:5173",  # Local development
     "http://localhost:3000",  # Alternative local port
+    "http://localhost:3001",  # Current dev server port
 ]
 
 app.add_middleware(
@@ -207,41 +213,154 @@ def get_crypto_prices():
 
 @app.get("/screener")
 def stock_screener(
-    rsi_max: int = None,
-    rsi_min: int = None,
-    macd_positive: bool = None,
+    # Price filters
     price_min: float = None,
-    price_max: float = None
+    price_max: float = None,
+    
+    # RSI filters
+    rsi_min: float = None,
+    rsi_max: float = None,
+    rsi_oversold: bool = None,  # RSI < 30
+    rsi_overbought: bool = None, # RSI > 70
+    
+    # MACD filters
+    macd_positive: bool = None,  # MACD histogram > 0
+    macd_bullish: bool = None,   # MACD line > signal (histogram > 0)
+    
+    # Moving Average filters
+    above_ma20: bool = None,
+    above_ma50: bool = None,
+    golden_cross: bool = None,   # MA20 > MA50
+    death_cross: bool = None,    # MA20 < MA50
+    
+    # Bollinger Bands filters
+    bb_squeeze: bool = None,     # BB width < 0.1
+    price_at_lower_bb: bool = None,  # Price near lower band (potential buy)
+    price_at_upper_bb: bool = None,  # Price near upper band (potential sell)
+    
+    # Volume filters
+    high_volume: bool = None,    # Volume ratio > 1.5
+    low_volume: bool = None,     # Volume ratio < 0.5
+    
+    # Include crypto
+    include_crypto: bool = True
 ):
-    """Screen stocks based on technical indicators"""
+    """Advanced stock screener with multiple technical indicator filters"""
     try:
-        conditions = ["trade_date = (SELECT MAX(trade_date) FROM `{}.{}.{}`".format(PROJECT_ID, DATASET, GOLD_TABLE) + ")"]
+        conditions = []
         
-        if rsi_max is not None:
-            conditions.append(f"rsi_14 <= {rsi_max}")
-        if rsi_min is not None:
-            conditions.append(f"rsi_14 >= {rsi_min}")
-        if macd_positive is not None:
-            if macd_positive:
-                conditions.append("macd_histogram > 0")
-            else:
-                conditions.append("macd_histogram < 0")
+        # Always get latest data
+        conditions.append(f"trade_date = (SELECT MAX(trade_date) FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`)")
+        
+        # Exclude crypto if requested
+        if not include_crypto:
+            conditions.append("ticker NOT IN ('BTC', 'ETH')")
+        
+        # Price filters
         if price_min is not None:
             conditions.append(f"close >= {price_min}")
         if price_max is not None:
             conditions.append(f"close <= {price_max}")
         
+        # RSI filters
+        if rsi_min is not None:
+            conditions.append(f"rsi_14 >= {rsi_min}")
+        if rsi_max is not None:
+            conditions.append(f"rsi_14 <= {rsi_max}")
+        if rsi_oversold:
+            conditions.append("rsi_14 < 30")
+        if rsi_overbought:
+            conditions.append("rsi_14 > 70")
+        
+        # MACD filters
+        if macd_positive is not None:
+            if macd_positive:
+                conditions.append("macd_histogram > 0")
+            else:
+                conditions.append("macd_histogram < 0")
+        if macd_bullish:
+            conditions.append("macd_histogram > 0")
+        
+        # MA filters
+        if above_ma20:
+            conditions.append("close > ma_20")
+        if above_ma50:
+            conditions.append("close > ma_50")
+        if golden_cross:
+            conditions.append("ma_20 > ma_50")
+        if death_cross:
+            conditions.append("ma_20 < ma_50")
+        
+        # Bollinger Bands filters
+        if bb_squeeze:
+            conditions.append("bb_width < 0.1")
+        if price_at_lower_bb:
+            conditions.append("close <= bb_lower * 1.02")  # Within 2% of lower band
+        if price_at_upper_bb:
+            conditions.append("close >= bb_upper * 0.98")  # Within 2% of upper band
+        
+        # Volume filters
+        if high_volume:
+            conditions.append("volume_ratio > 1.5")
+        if low_volume:
+            conditions.append("volume_ratio < 0.5")
+        
+        # Build WHERE clause
         where_clause = " AND ".join(conditions)
+        
+        # Build SQL query
         sql = f"""
-            SELECT ticker, close, daily_return, rsi_14, macd_line, macd_histogram, 
-                   bb_upper, bb_lower, vma_20
+            SELECT 
+                ticker,
+                trade_date,
+                close,
+                daily_return,
+                rsi_14,
+                ma_20,
+                ma_50,
+                macd_line,
+                macd_signal,
+                macd_histogram,
+                bb_upper,
+                bb_middle,
+                bb_lower,
+                bb_width,
+                vma_20,
+                volume_ratio,
+                total_volume
             FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
             WHERE {where_clause}
             ORDER BY ticker
         """
         
         df = bq_client.query(sql).to_dataframe()
-        return df.to_dict(orient="records")
+        
+        # Convert NaN to None for JSON serialization
+        df = df.replace({pd.NA: None, float('nan'): None})
+        
+        # Build response with filter summary
+        return {
+            "filters_applied": {
+                "price_range": [price_min, price_max] if price_min or price_max else None,
+                "rsi_range": [rsi_min, rsi_max] if rsi_min or rsi_max else None,
+                "rsi_oversold": rsi_oversold,
+                "rsi_overbought": rsi_overbought,
+                "macd_positive": macd_positive,
+                "macd_bullish": macd_bullish,
+                "above_ma20": above_ma20,
+                "above_ma50": above_ma50,
+                "golden_cross": golden_cross,
+                "death_cross": death_cross,
+                "bb_squeeze": bb_squeeze,
+                "price_at_lower_bb": price_at_lower_bb,
+                "price_at_upper_bb": price_at_upper_bb,
+                "high_volume": high_volume,
+                "low_volume": low_volume,
+                "include_crypto": include_crypto
+            },
+            "results": df.to_dict(orient="records"),
+            "count": len(df)
+        }
     except Exception as e:
         logger.error(f"Screener failed: {e}")
         raise HTTPException(status_code=500, detail=f"Screener error: {str(e)}")
@@ -452,18 +571,21 @@ def news_sentiment(ticker: str = "AAPL", limit: int = 10):
     return response
 
 @app.get("/big-five-dashboard")
-def big_five_dashboard(days: int = 365):
+def big_five_dashboard(days: int = 365, include_crypto: bool = True):
+    """Get dashboard data for FAANG stocks and optionally crypto"""
+    tickers = ALL_TICKERS if include_crypto else BIG_FIVE_TICKERS
+    
     query = f"""
         SELECT ticker, trade_date, close, daily_return, rsi_14
         FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
         WHERE trade_date >= DATE_SUB(CURRENT_DATE(), INTERVAL @days DAY)
-        AND ticker IN UNNEST(@big_five_tickers)
+        AND ticker IN UNNEST(@tickers)
         ORDER BY trade_date DESC
     """
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
             bigquery.ScalarQueryParameter("days", "INT64", days),
-            bigquery.ArrayQueryParameter("big_five_tickers", "STRING", BIG_FIVE_TICKERS),
+            bigquery.ArrayQueryParameter("tickers", "STRING", tickers),
         ]
     )
     df = bq_client.query(query, job_config=job_config).to_dataframe()
@@ -476,7 +598,7 @@ def big_five_dashboard(days: int = 365):
     # Enforce fixed order
     records = latest.to_dict(orient="records")
     try:
-        records.sort(key=lambda x: BIG_FIVE_TICKERS.index(x['ticker']))
+        records.sort(key=lambda x: tickers.index(x['ticker']))
     except ValueError:
         pass # Handle case if unknown ticker slips in
     
@@ -485,3 +607,209 @@ def big_five_dashboard(days: int = 365):
 @app.get("/")
 def root():
     return {"message": "API is running"}
+# ===========================
+# FRED ECONOMIC INDICATORS
+# ===========================
+@app.get("/economic-indicators")
+def get_economic_indicators(days: int = 365):
+    """Get latest economic indicators from FRED"""
+    try:
+        query = f"""
+            WITH latest_values AS (
+                SELECT 
+                    series_id,
+                    series_name,
+                    observation_date,
+                    value,
+                    frequency,
+                    units,
+                    ROW_NUMBER() OVER (PARTITION BY series_id ORDER BY observation_date DESC) as rn
+                FROM `{PROJECT_ID}.{DATASET}.fred_data`
+                WHERE observation_date >= DATE_SUB(CURRENT_DATE(), INTERVAL @days DAY)
+            ),
+            previous_values AS (
+                SELECT 
+                    series_id,
+                    value as prev_value,
+                    observation_date as prev_date,
+                    ROW_NUMBER() OVER (PARTITION BY series_id ORDER BY observation_date DESC) as rn
+                FROM `{PROJECT_ID}.{DATASET}.fred_data`
+                WHERE observation_date >= DATE_SUB(CURRENT_DATE(), INTERVAL @days DAY)
+            )
+            SELECT 
+                l.series_id,
+                l.series_name,
+                l.observation_date as latest_date,
+                l.value as latest_value,
+                l.frequency,
+                l.units,
+                p.prev_value,
+                p.prev_date,
+                SAFE_DIVIDE((l.value - p.prev_value), p.prev_value) * 100 as change_pct
+            FROM latest_values l
+            LEFT JOIN previous_values p 
+                ON l.series_id = p.series_id AND p.rn = 2
+            WHERE l.rn = 1
+            ORDER BY l.series_id
+        """
+        
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("days", "INT64", days)
+            ]
+        )
+        
+        df = bq_client.query(query, job_config=job_config).to_dataframe()
+        
+        if df.empty:
+            return {"indicators": [], "count": 0}
+        
+        # Determine trend
+        def get_trend(change_pct):
+            if pd.isna(change_pct):
+                return "stable"
+            elif change_pct > 0.5:
+                return "up"
+            elif change_pct < -0.5:
+                return "down"
+            else:
+                return "stable"
+        
+        df["trend"] = df["change_pct"].apply(get_trend)
+        
+        # Convert NaN to None
+        df = df.replace({pd.NA: None, float('nan'): None})
+        
+        return {
+            "indicators": df.to_dict(orient="records"),
+            "count": len(df)
+        }
+    except Exception as e:
+        logger.error(f"Failed to fetch economic indicators: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching indicators: {str(e)}")
+
+@app.get("/economic-indicators/{series_id}")
+def get_economic_indicator_history(series_id: str, days: int = 365):
+    """Get historical data for a specific economic indicator"""
+    try:
+        query = f"""
+            SELECT 
+                series_id,
+                series_name,
+                observation_date,
+                value,
+                frequency,
+                units
+            FROM `{PROJECT_ID}.{DATASET}.fred_data`
+            WHERE series_id = @series_id
+              AND observation_date >= DATE_SUB(CURRENT_DATE(), INTERVAL @days DAY)
+            ORDER BY observation_date ASC
+        """
+        
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("series_id", "STRING", series_id),
+                bigquery.ScalarQueryParameter("days", "INT64", days)
+            ]
+        )
+        
+        df = bq_client.query(query, job_config=job_config).to_dataframe()
+        
+        if df.empty:
+            raise HTTPException(status_code=404, detail=f"Series {series_id} not found")
+        
+        # Convert NaN to None
+        df = df.replace({pd.NA: None, float('nan'): None})
+        
+        return {
+            "series_id": series_id,
+            "series_name": df["series_name"].iloc[0] if not df.empty else None,
+            "frequency": df["frequency"].iloc[0] if not df.empty else None,
+            "units": df["units"].iloc[0] if not df.empty else None,
+            "data": df[["observation_date", "value"]].to_dict(orient="records"),
+            "count": len(df)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to fetch indicator {series_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching indicator: {str(e)}")
+
+@app.get("/market-correlation")
+def get_market_correlation(series_id: str = "UNRATE", days: int = 365):
+    """Correlate stock performance with economic indicators"""
+    try:
+        # Get economic indicator data
+        econ_query = f"""
+            SELECT 
+                observation_date,
+                value as indicator_value
+            FROM `{PROJECT_ID}.{DATASET}.fred_data`
+            WHERE series_id = @series_id
+              AND observation_date >= DATE_SUB(CURRENT_DATE(), INTERVAL @days DAY)
+            ORDER BY observation_date
+        """
+        
+        # Get stock data
+        stock_query = f"""
+            SELECT 
+                trade_date,
+                ticker,
+                close,
+                daily_return
+            FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
+            WHERE trade_date >= DATE_SUB(CURRENT_DATE(), INTERVAL @days DAY)
+              AND ticker IN UNNEST(@tickers)
+            ORDER BY trade_date
+        """
+        
+        job_config_econ = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("series_id", "STRING", series_id),
+                bigquery.ScalarQueryParameter("days", "INT64", days)
+            ]
+        )
+        
+        job_config_stock = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("days", "INT64", days),
+                bigquery.ArrayQueryParameter("tickers", "STRING", BIG_FIVE_TICKERS)
+            ]
+        )
+        
+        econ_df = bq_client.query(econ_query, job_config=job_config_econ).to_dataframe()
+        stock_df = bq_client.query(stock_query, job_config=job_config_stock).to_dataframe()
+        
+        if econ_df.empty or stock_df.empty:
+            return {"correlations": [], "message": "Insufficient data for correlation"}
+        
+        # Calculate correlations for each ticker
+        correlations = []
+        for ticker in BIG_FIVE_TICKERS:
+            ticker_data = stock_df[stock_df["ticker"] == ticker].copy()
+            
+            # Merge with economic data
+            merged = pd.merge(
+                ticker_data,
+                econ_df,
+                left_on="trade_date",
+                right_on="observation_date",
+                how="inner"
+            )
+            
+            if len(merged) > 10:  # Need enough data points
+                corr = merged["close"].corr(merged["indicator_value"])
+                correlations.append({
+                    "ticker": ticker,
+                    "correlation": float(corr) if not pd.isna(corr) else None,
+                    "data_points": len(merged)
+                })
+        
+        return {
+            "series_id": series_id,
+            "correlations": correlations,
+            "period_days": days
+        }
+    except Exception as e:
+        logger.error(f"Failed to calculate correlation: {e}")
+        raise HTTPException(status_code=500, detail=f"Error calculating correlation: {str(e)}")

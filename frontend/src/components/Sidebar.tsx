@@ -25,9 +25,9 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
   ];
 
   return (
-    <aside className="w-64 border-r border-slate-900 bg-slate-950 flex flex-col z-30 pb-14">
+    <aside className="w-64 border-r border-slate-200 dark:border-slate-900 bg-white dark:bg-slate-950 flex flex-col z-30 pb-14">
       <div className="px-4 py-6 mb-4">
-        <h1 className="font-black tracking-tighter text-3xl text-white">BigFive</h1>
+        <h1 className="font-black tracking-tighter text-3xl text-slate-900 dark:text-white">BigFive</h1>
       </div>
 
       <nav className="flex-1 px-4 space-y-2">
@@ -40,26 +40,26 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group ${isActive
-                ? 'bg-blue-600/10 text-blue-400'
-                : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900'
+                ? 'bg-blue-50 dark:bg-blue-600/10 text-blue-600 dark:text-blue-400'
+                : 'text-slate-600 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
             >
-              <Icon size={20} className={`flex-shrink-0 ${isActive ? 'text-blue-400' : 'group-hover:text-slate-300'}`} />
+              <Icon size={20} className={`flex-shrink-0 ${isActive ? 'text-blue-600 dark:text-blue-400' : 'group-hover:text-slate-900 dark:group-hover:text-slate-200'}`} />
               <span className="font-semibold text-sm whitespace-normal text-left leading-tight">{item.label}</span>
               {isActive && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.6)]" />
+                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600 dark:bg-blue-400" />
               )}
             </button>
           );
         })}
       </nav>
 
-      <div className="p-4 mt-auto border-t border-slate-900">
-        <div className="bg-slate-900/50 p-4 rounded-2xl border border-slate-800">
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Status</p>
+      <div className="p-4 mt-auto border-t border-slate-200 dark:border-slate-900">
+        <div className="bg-slate-100 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+          <p className="text-[10px] font-bold text-slate-600 dark:text-slate-500 uppercase tracking-widest mb-1">Status</p>
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs text-slate-300 font-mono">SERVERLESS</span>
+            <span className="text-xs text-slate-700 dark:text-slate-300 font-mono">SERVERLESS</span>
           </div>
         </div>
       </div>

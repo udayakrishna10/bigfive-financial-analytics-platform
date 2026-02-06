@@ -29,12 +29,12 @@ export const ChartSection = () => {
   }, [allPoints, range]);
 
   return (
-    <div className="bg-white/5 border border-white/10 p-8 rounded-3xl backdrop-blur-xl shadow-2xl">
+    <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 p-8 rounded-3xl backdrop-blur-xl shadow-2xl">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-6 md:gap-0">
         <div className="flex items-center gap-4 w-full md:w-auto">
           {getLogo(ticker) && <img src={getLogo(ticker) || ""} alt={ticker} className="w-12 h-12 md:w-14 md:h-14 object-contain" />}
           <div className="flex-1 md:flex-none">
-            <h2 className="text-lg md:text-xl font-bold text-white tracking-tight">Market Momentum</h2>
+            <h2 className="text-lg md:text-xl font-bold text-gray-900 dark:text-white tracking-tight">Market Momentum</h2>
 
             {/* Time Range Selector */}
             <div className="flex gap-2 mt-2 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
@@ -44,7 +44,7 @@ export const ChartSection = () => {
                   onClick={() => setRange(r)}
                   className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-colors border whitespace-nowrap ${range === r
                     ? 'bg-blue-500 text-white border-blue-400'
-                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700 hover:text-white'
+                    : 'bg-gray-200 dark:bg-slate-800 text-gray-800 dark:text-slate-300 border-gray-400 dark:border-slate-600 hover:bg-gray-300 dark:hover:bg-slate-700 hover:text-gray-900 dark:hover:text-white'
                     }`}
                 >
                   {r}
@@ -55,16 +55,16 @@ export const ChartSection = () => {
         </div>
 
         <div className="flex flex-row md:flex-col items-center md:items-end gap-4 md:gap-2 w-full md:w-auto justify-between md:justify-start">
-          <select value={ticker} onChange={(e) => setTicker(e.target.value)} className="bg-slate-800 text-white rounded-lg px-3 py-2 md:py-1 outline-none text-sm w-full md:w-auto">
+          <select value={ticker} onChange={(e) => setTicker(e.target.value)} className="bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg px-3 py-2 md:py-1 outline-none text-sm w-full md:w-auto border border-gray-300 dark:border-slate-700">
             {["AAPL", "AMZN", "META", "NFLX", "GOOGL"].map(t => <option key={t} value={t}>{t}</option>)}
           </select>
 
           {points.length > 0 && points[points.length - 1].rsi_14 && (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">Current RSI (14)</span>
+              <span className="text-xs text-gray-600 dark:text-slate-400 font-medium uppercase tracking-wider">Current RSI (14)</span>
               <span className={`text-sm font-bold ${points[points.length - 1].rsi_14 > 70 ? 'text-red-400' :
                 points[points.length - 1].rsi_14 < 30 ? 'text-green-400' :
-                  'text-white'
+                  'text-gray-900 dark:text-white'
                 }`}>
                 {points[points.length - 1].rsi_14.toFixed(2)}
               </span>
@@ -137,7 +137,7 @@ export const ChartSection = () => {
 
       <div className="mt-4 flex items-center justify-center gap-2">
         <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
-        <p className="text-[10px] text-slate-500 font-mono">
+        <p className="text-[10px] text-gray-600 dark:text-slate-500 font-mono">
           Note: Market Data refreshes weekdays at 5:00 PM ET.
         </p>
       </div>

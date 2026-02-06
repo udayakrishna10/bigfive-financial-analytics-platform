@@ -71,7 +71,9 @@ def run_gold_etl():
         bb_upper FLOAT64,
         bb_middle FLOAT64,
         bb_lower FLOAT64,
+        bb_width FLOAT64,
         vma_20 FLOAT64,
+        volume_ratio FLOAT64,
         ema_12 FLOAT64,
         ema_26 FLOAT64
     )
@@ -187,7 +189,30 @@ def run_gold_etl():
             WHEN COUNT(*) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 25 PRECEDING AND CURRENT ROW) = 26
             THEN AVG(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 25 PRECEDING AND CURRENT ROW)
             ELSE NULL
-          END AS ema_26
+          END AS ema_26,
+
+          -- Bollinger Band Width
+          CASE
+            WHEN COUNT(*) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) = 20
+            THEN SAFE_DIVIDE(
+              (AVG(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) +
+               (2 * STDDEV(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW))) -
+              (AVG(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) -
+               (2 * STDDEV(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW))),
+              AVG(close) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW)
+            )
+            ELSE NULL
+          END AS bb_width,
+
+          -- Volume Ratio
+          CASE
+            WHEN COUNT(*) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW) = 20
+            THEN SAFE_DIVIDE(
+              total_volume,
+              AVG(total_volume) OVER (PARTITION BY ticker ORDER BY trade_date ROWS BETWEEN 19 PRECEDING AND CURRENT ROW)
+            )
+            ELSE NULL
+          END AS volume_ratio
         FROM daily
       ),
 
@@ -243,7 +268,9 @@ def run_gold_etl():
         bb_upper,
         bb_middle,
         bb_lower,
+        bb_width,
         vma_20,
+        volume_ratio,
         ema_12,
         ema_26
       )
@@ -267,7 +294,9 @@ def run_gold_etl():
         src.bb_upper,
         src.bb_middle,
         src.bb_lower,
+        src.bb_width,
         src.vma_20,
+        src.volume_ratio,
         src.ema_12,
         src.ema_26
       );

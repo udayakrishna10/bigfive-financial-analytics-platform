@@ -59,16 +59,16 @@ export const Dashboard = () => {
         {stocks.map((s, i) => (
           <div
             key={s.ticker}
-            className="bg-slate-900 border border-slate-800 p-6 rounded-3xl hover:border-blue-500/40 transition-all animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-backwards"
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-3xl hover:border-blue-500/40 transition-all animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-backwards"
             style={{ animationDelay: `${i * 100}ms` }}
           >
             <div className="flex justify-between items-start">
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-3 mb-1">
                   {getLogo(s.ticker) && <img src={getLogo(s.ticker) || ""} alt={s.ticker} className="w-8 h-8 object-contain" />}
-                  <p className="text-slate-500 text-xs font-black uppercase tracking-tighter">{s.ticker}</p>
+                  <p className="text-slate-600 dark:text-slate-500 text-xs font-black uppercase tracking-tighter">{s.ticker}</p>
                 </div>
-                <h3 className="text-3xl font-bold text-white mt-1">
+                <h3 className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
                   ${typeof s.close === 'number' ? s.close.toFixed(2) : '0.00'}
                 </h3>
               </div>
@@ -76,10 +76,9 @@ export const Dashboard = () => {
                 {s.daily_return >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
               </div>
             </div>
-            <div className="mt-6 pt-4 border-t border-slate-800 flex items-center gap-2">
-              <span className="text-xs text-slate-500 uppercase">RSI:</span>
-              <span className={`text-sm font-mono ${s.rsi_14 > 70 ? 'text-rose-400' : s.rsi_14 < 30 ? 'text-emerald-400' : 'text-slate-200'}`}>
-                {s.rsi_14?.toFixed(2) || "N/A"}
+            <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2">
+              <span className="text-xs text-slate-600 dark:text-slate-500 uppercase">RSI:</span>
+              <span className={`text-sm font-mono ${s.rsi_14 > 70 ? 'text-rose-400' : s.rsi_14 < 30 ? 'text-emerald-400' : 'text-slate-700 dark:text-slate-200'}`}>                {s.rsi_14?.toFixed(2) || "N/A"}
               </span>
             </div>
           </div>

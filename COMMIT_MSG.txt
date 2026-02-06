@@ -1,0 +1,97 @@
+feat: Add crypto integration, FRED economic data, advanced indicators, and enhanced screener
+
+## Backend Enhancements
+
+### 🪙 Crypto Integration
+- Add bronze_crypto_etl.py for Bitcoin and Ethereum data ingestion
+- Integrate CoinGecko API for historical crypto OHLCV data
+- Add 372 rows of crypto data with full technical indicators
+- Update API constants to include BTC and ETH tickers
+- Enhance /big-five-dashboard endpoint with crypto support
+
+### 📊 FRED Economic Data Integration
+- Add bronze_fred_etl.py for Federal Reserve economic indicators
+- Track 6 key indicators: GDP, CPI, Unemployment, Fed Funds, 10Y Treasury, VIX
+- Load 4,489 rows of historical economic data (5 years)
+- Add 3 new API endpoints:
+  - GET /economic-indicators - Latest values with trends
+  - GET /economic-indicators/{series_id} - Historical data
+  - GET /market-correlation - Stock-economic correlations
+- Add FRED_SETUP.md documentation
+
+### 📈 Advanced Technical Indicators
+- Add MACD (Line, Signal, Histogram) calculations to Silver ETL
+- Add Bollinger Bands (Upper, Middle, Lower, Width) to Silver ETL
+- Add Volume Moving Average and Volume Ratio to Silver ETL
+- Update Gold ETL schema to include bb_width and volume_ratio
+- Process 675 rows with all new indicators
+
+### 🔍 Enhanced Stock Screener
+- Expand /screener endpoint with 15+ filter types
+- Add RSI filters (min, max, oversold, overbought)
+- Add MACD filters (positive, bullish)
+- Add Moving Average filters (above MA20/50, golden cross, death cross)
+- Add Bollinger Bands filters (squeeze, price at bands)
+- Add Volume filters (high volume, low volume)
+- Return detailed response with filters_applied and count
+
+### 🛠️ Utilities & Cleanup
+- Add rebuild_silver.py and rebuild_gold.py for table rebuilds
+- Add verify_crypto.py and verify_indicators.py for data validation
+- Add cleanup.sh script for project maintenance
+- Remove 4 debug scripts (debug_ai.py, debug_data.py, debug_news.py, debug_sources.py)
+- Remove duplicate .env files from backend/app/
+
+## Frontend Enhancements
+
+### 🎨 UI/UX Improvements
+- Update theme toggle with improved styling
+- Enhance sidebar hover states
+- Add BigQuery icon to architecture view
+- Improve mobile navigation
+- Refine crypto cards display
+- Polish dashboard layout
+- Update chart section styling
+- Enhance AI chat interface
+- Improve sentiment feed design
+- Update health view display
+
+### 🎨 Styling
+- Update index.css with new theme variables
+- Refine Tailwind configuration
+- Add new color schemes and transitions
+
+## Database Changes
+
+- Bronze table: 1,047 rows (675 stocks + 372 crypto)
+- Silver table: 1,045 rows with all indicators
+- Gold table: 1,045 rows with aggregated analytics
+- FRED table: 4,489 rows of economic data
+- Total: 6,626 rows across 4 tables
+
+## API Endpoints
+
+Total: 15+ operational endpoints including:
+- Stock data endpoints (dashboard, chart-data)
+- Crypto endpoints (integrated via include_crypto parameter)
+- Economic indicators (3 new endpoints)
+- Enhanced screener with advanced filters
+- News, AI insights, health check
+
+## Breaking Changes
+
+None - All changes are backward compatible
+
+## Testing
+
+- ✅ FRED ETL tested with 4,489 rows loaded
+- ✅ Crypto ETL tested with 372 rows loaded
+- ✅ Screener tested with multiple filter combinations
+- ✅ All indicators verified in Gold table
+- ✅ API endpoints tested locally
+
+## Documentation
+
+- Added FRED_SETUP.md with API key setup instructions
+- Updated inline code documentation
+- Added cleanup.sh with usage instructions
