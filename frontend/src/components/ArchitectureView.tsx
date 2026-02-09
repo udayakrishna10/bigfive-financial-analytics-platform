@@ -175,8 +175,8 @@ export const ArchitectureView = () => {
                     <div className="relative flex items-center gap-3">
                         <div className="flex-1 text-center">
                             <h4 className="text-emerald-100 font-bold uppercase tracking-widest text-[10px] mb-0.5">Impact Metric</h4>
-                            <h3 className="text-lg font-black text-white tracking-tight mb-0.5">97.5% Cost Reduction</h3>
-                            <p className="text-[10px] text-emerald-100 leading-tight">From $40/mo (GKE) to ~$1/mo (Cloud Run).</p>
+                            <h3 className="text-lg font-black text-white tracking-tight mb-0.5">98.5% Cost Reduction</h3>
+                            <p className="text-[10px] text-emerald-100 leading-tight">From $70/mo (GKE) to ~$1/mo (Cloud Run).</p>
                         </div>
                         <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-md">
                             <DollarSign size={16} className="text-white" />
