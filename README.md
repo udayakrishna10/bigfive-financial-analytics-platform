@@ -6,11 +6,11 @@ An end-to-end data engineering and analytics platform providing real-time market
 
 ### Key Engineering Impact
 
-* **Architectural Migration**: Re-engineered a high-overhead GKE/Airflow stack into a Serverless "Scale-to-Zero" architecture using Google Cloud Run Jobs and Cloud Scheduler, achieving significant operational savings while automating daily 6:00 PM EST ingestion.
+* **Architectural Migration**: Re-engineered a high-overhead GKE/Airflow stack into a Serverless "Scale-to-Zero" architecture using Google Cloud Run Jobs and Cloud Scheduler, achieving significant operational savings while automating daily 4:15 PM EST ingestion.
 * **Data Integrity & Quant Logic**: Solved the technical indicator "warm-up" paradox by enforcing strict 19 and 49-day null windows for 20/50 SMA and RSI calculations, ensuring 100% mathematical accuracy for trend analysis.
 * **Medallion Pipeline (BigQuery)**: Designed a 3-layer ETL flow (Bronze → Silver → Gold) utilizing SQL Window Functions (LAG) to resolve daily return null propagation across batch ingestions.
 * **Intelligence Sink (GCS)**: Implemented a cost-effective archival strategy for unstructured data by decoupling AI-generated summaries into timestamped .txt files in Google Cloud Storage, keeping the BigQuery warehouse lean and performant.
-* **Signal Processing**: Engineered a reputation-based news filter to ingest high-signal financial reporting from tier-1 sources (CNBC, Bloomberg, WSJ), optimizing LLM (GPT-4o-mini) processing efficiency.
+* **Signal Processing**: Engineered an on-demand News API integration with a reputation-based filter to ingest high-signal financial reporting from tier-1 sources (CNBC, Bloomberg, WSJ), optimizing LLM (GPT-4o-mini) processing efficiency.
 * **Governance**: Established a Global Rate Limiter and utilized GCP Secret Manager to ensure API security and strict budgetary control.
 
 ### Live @ https://bigfivebyuk.netlify.app
@@ -31,7 +31,7 @@ The project evolved through two distinct architectural phases to achieve optimal
 | **Best Use Case** | Continuous Streaming / High Traffic | Daily Post-Market Batch Processing | Technical Analysis & Macro Forecasts |
 
 ## Architecture: The "Low-Cost" Serverless Evolution
-The platform follows a decoupled, batch-oriented architecture optimized for the 6:00 PM EST post-market settlement:
+The platform follows a decoupled, batch-oriented architecture optimized for the 4:15 PM EST post-market settlement:
 
 *   **Orchestration**: Cloud Scheduler triggers the daily ingestion cycle post-market close.
 *   **Compute**: Cloud Run Jobs execute containerized Docker logic, scaling to zero when not in use to eliminate idle costs.
@@ -62,9 +62,9 @@ I shifted from GKE and Cloud Composer to a Serverless model to prove that enterp
 The platform’s engine is a fully automated, 3-stage pipeline executed daily via containerized Docker jobs.
 
 ### 1. Extraction (Ingestion Layer)
-*   **Trigger**: Cloud Scheduler initiates the process at 6:00 PM EST once market settlement is finalized.
+*   **Trigger**: Cloud Scheduler initiates the process at 4:15 PM EST once market settlement is finalized.
 *   **Multi-Source Fetch**: Cloud Run Jobs pull market OHLCV via **yFinance**, live Crypto prices via **CoinGecko**, and Global Macro indicators (VIX, Yields) via **FRED API**.
-*   **Sentiment Search**: Financial news headers are pulled from **NewsAPI.org**, refined by a strict "Institutional Reputation" filter.
+*   **Sentiment Search**: **On-Demand API-driven** financial news headers are pulled from **NewsAPI.org**, refined by a strict "Institutional Reputation" filter.
 *   **Bronze Storage**: Raw payloads land in BigQuery Bronze tables as immutable historical snapshots.
 
 ### 2. Transformation (Processing Layer)
@@ -105,3 +105,7 @@ The platform uses **GitHub Actions** for automated deployment. On every push to 
     *   **Silver Transformation**: Runs daily at 4:30 PM ET.
     *   **Gold Aggregation**: Runs daily at 4:45 PM ET.
 
+## **Udaya Krishna Karanam**  
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-blue?style=flat&logo=linkedin)](https://www.linkedin.com/in/udayakrishnakaranam10)
+[![Email](https://img.shields.io/badge/Email-Contact-red?style=flat&logo=gmail)](mailto:ukrishn10@gmail.com)
