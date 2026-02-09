@@ -20,13 +20,13 @@ An end-to-end data engineering and analytics platform providing real-time market
 
 The project evolved through two distinct architectural phases to achieve optimal cost-performance ratio.
 
-| Feature | Phase 1: Enterprise Native (GKE) | Phase 2: Serverless Optimized | Phase 3: Global Intelligence |
+| Feature | Phase 1: Heavy Enterprise (GKE) | Phase 2: Serverless Optimized | Phase 3: Global Intelligence |
 | :--- | :--- | :--- | :--- |
 | **Compute** | GKE Autopilot (Always-On) | Cloud Run Jobs (Scale-to-Zero) | Serverless + GenAI Analysis |
 | **Orchestration** | Apache Airflow (Cloud Composer) | Native Cloud Scheduler | Real-time Cross-Market Sync |
-| **Data Strategy** | Monolithic BigQuery Storage | BigQuery + GCS "Intelligence Sink" | Cross-Asset Global Integration |
-| **Operational Cost** | High (~$70/month idle fees) | Scale-to-Zero Efficiency | Usage-Based Costing |
-| **CI/CD Pipeline** | Manual / Cloud Build | GitHub Actions (Automated) | Pull Request & Verified Deploy |
+| **Data Strategy** | Monolithic BigQuery Storage | BigQuery + GCS "Intelligence Sink" | Multi-Asset Integration (Stocks/Crypto/Macro) |
+| **Operational Cost** | High (~$70/month idle fees) | ~$1/month (98.5% reduction) | Usage-Based Costing |
+| **CI/CD Pipeline** | Manual / Cloud Build | GitHub Actions (Automated) | Automated Deploy + Quality Gates |
 | **Maintenance** | Cluster & Node Management | Zero-Ops (Managed Serverless) | Automated Data Quality Logic |
 | **Best Use Case** | Continuous Streaming / High Traffic | Daily Post-Market Batch Processing | Automated Insights |
 

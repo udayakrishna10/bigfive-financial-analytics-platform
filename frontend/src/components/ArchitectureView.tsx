@@ -100,7 +100,7 @@ export const ArchitectureView = () => {
                                 </td>
                                 <td className="p-3 text-blue-700 dark:text-blue-200 font-bold bg-blue-500/5 relative">
                                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-400 to-blue-600" />
-                                    Cross-Asset Global Integration
+                                    Multi-Asset Integration (Stocks/Crypto/Macro)
                                 </td>
                             </tr>
                             <tr className="hover:bg-blue-50/50 dark:hover:bg-white/5 transition-all duration-200 group">
@@ -111,7 +111,7 @@ export const ArchitectureView = () => {
                                 <td className="p-3 text-red-700 dark:text-red-300 font-semibold bg-red-500/5 dark:bg-red-900/10">High (~$70/month idle fees)</td>
                                 <td className="p-3 text-emerald-700 dark:text-emerald-200 font-medium bg-emerald-500/5 relative">
                                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-emerald-600" />
-                                    Scale-to-Zero Efficiency
+                                    ~$1/month (98.5% reduction)
                                 </td>
                                 <td className="p-3 text-blue-700 dark:text-blue-200 font-bold bg-blue-500/5 relative">
                                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-400 to-blue-600" />
@@ -130,7 +130,7 @@ export const ArchitectureView = () => {
                                 </td>
                                 <td className="p-3 text-blue-700 dark:text-blue-200 font-bold bg-blue-500/5 relative">
                                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-400 to-blue-600" />
-                                    Pull Request & Verified Deploy
+                                    Automated Deploy + Quality Gates
                                 </td>
                             </tr>
                             <tr className="hover:bg-blue-50/50 dark:hover:bg-white/5 transition-all duration-200 group">
