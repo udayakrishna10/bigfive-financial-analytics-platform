@@ -90,9 +90,11 @@ The platform uses **GitHub Actions** for automated deployment. On every push to 
 
 
 ## Screenshots
-![Dashboard](/Images/dashboard.png)
-![Data Architecture](/Images/data_architecture.png)
-![News Sentiment](/Images/news_sentiment.png)
+![Dashboard Overview](/Images/dashboard_overview.png)
+![Market Momentum & Analytics](/Images/market_momentum_analytics.png)
+![Economic Data Dashboard](/Images/economic_dashboard.png)
+![Architecture Evolution](/Images/architecture_evolution.png)
+![Data Architecture & Security](/Images/data_architecture_diagram.png)
 
 
 ## AI Insights By OpenAI GPT-4o-mini
