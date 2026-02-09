@@ -22,13 +22,18 @@ The project evolved through two distinct architectural phases to achieve optimal
 
 | Feature | Phase 1: Enterprise Native (GKE) | Phase 2: Serverless Optimized | Phase 3: Global Intelligence |
 | :--- | :--- | :--- | :--- |
-| **Compute** | GKE Autopilot (Always-On) | Cloud Run Jobs (Scale-to-Zero) | Serverless + GenAI Analysis (GPT-4) |
-| **Orchestration** | Apache Airflow (Cloud Composer) | Native Cloud Scheduler | Real-time Tech & Crypto Sync |
-| **Data Strategy** | Monolithic BigQuery Storage | BigQuery + GCS "Intelligence Sink" | Global FRED Macro Integration |
-| **Operational Cost** | High (~$100+/month idle fees) | Minimal (99% Reduction) | Optimal ROI (Predictive Analytics) |
+| **Compute** | GKE Autopilot (Always-On) | Cloud Run Jobs (Scale-to-Zero) | Serverless + GenAI Analysis |
+| **Orchestration** | Apache Airflow (Cloud Composer) | Native Cloud Scheduler | Real-time Cross-Market Sync |
+| **Data Strategy** | Monolithic BigQuery Storage | BigQuery + GCS "Intelligence Sink" | Cross-Asset Global Integration |
+| **Operational Cost** | High (~$100+/month idle fees) | Scale-to-Zero Efficiency | Usage-Based Costing |
 | **CI/CD Pipeline** | Manual / Cloud Build | GitHub Actions (Automated) | Pull Request & Verified Deploy |
 | **Maintenance** | Cluster & Node Management | Zero-Ops (Managed Serverless) | Automated Data Quality Logic |
-| **Best Use Case** | Continuous Streaming / High Traffic | Daily Post-Market Batch Processing | Technical Analysis & Macro Forecasts |
+| **Best Use Case** | Continuous Streaming / High Traffic | Daily Post-Market Batch Processing | Automated Insights |
+
+
+### Impact Metrics
+*   **97.5% Cost Reduction**: From ~$40/mo (GKE) to ~$1/mo (Cloud Run).
+*   **Zero-Ops Managed**: Fully automated, decoupled serverless architecture.
 
 ## Architecture: The "Low-Cost" Serverless Evolution
 The platform follows a decoupled, batch-oriented architecture optimized for the 4:15 PM EST post-market settlement:
