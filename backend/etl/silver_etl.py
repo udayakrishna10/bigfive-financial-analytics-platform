@@ -76,18 +76,10 @@ def ensure_silver_table():
 
 def get_last_trade_date():
     """Return last trade_date from Silver table; None if empty or missing."""
-    try:
-        query = f"SELECT MAX(trade_date) AS last_trade_date FROM `{silver_ref}`"
-        result = client.query(query).to_dataframe()
-        if result.empty or pd.isna(result["last_trade_date"].iloc[0]):
-            logger.info("Silver table empty; running full ETL.")
-            return None
-        last_date = result["last_trade_date"].iloc[0]
-        logger.info(f"Last silver trade_date: {last_date}")
-        return str(last_date)
-    except Exception as e:
-        logger.info(f"Silver table missing or error: {e}. Running full ETL.")
-        return None
+    today = datetime.now(timezone.utc).date()
+    lookback = today - pd.Timedelta(days=30)
+    logger.info(f"Using safe lookback date: {lookback}")
+    return str(lookback)
 
 def get_dates_to_process(last_trade_date):
     """

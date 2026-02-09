@@ -25,7 +25,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Load environment variables
-load_dotenv()
+# Load environment variables from project root
+env_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), '.env')
+load_dotenv(env_path)
 
 BIG_FIVE_TICKERS = ["AAPL", "AMZN", "META", "NFLX", "GOOGL"]
 CRYPTO_TICKERS = ["BTC", "ETH"]
@@ -41,7 +43,9 @@ TICKER_TO_COMPANY = {
     "ETH": "Ethereum",
 }
 FINANCE_DOMAINS = ",".join([
-    "cnbc.com", "finance.yahoo.com", "bloomberg.com", "reuters.com", "wsj.com", "barrons.com"
+    "cnbc.com", "finance.yahoo.com", "bloomberg.com", "reuters.com", "wsj.com", 
+    "barrons.com", "marketwatch.com", "investors.com", "fool.com", "seekingalpha.com",
+    "ft.com", "forbes.com", "businessinsider.com"
 ])
 REPUTED_SOURCES = {
     "Bloomberg", "Reuters", "The Wall Street Journal", "CNBC", "Financial Times",
@@ -60,13 +64,19 @@ BUCKET_NAME = "faang-insights-logs"
 # ENVIRONMENT VARIABLES
 # ===========================
 PROJECT_ID = os.getenv("GCP_PROJECT")
-DATASET = os.getenv("DATASET")
+DATASET = os.getenv("GCP_DATASET", os.getenv("DATASET"))
 GOLD_TABLE = os.getenv("GOLD_TABLE")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 NEWS_API_KEY = os.getenv("NEWS_API_KEY")
 
-if not all([PROJECT_ID, DATASET, GOLD_TABLE, OPENAI_API_KEY]):
-    logger.error("Missing critical environment variables. Please check .env file.")
+missing_vars = [var for var, val in {
+    "PROJECT_ID": PROJECT_ID,
+    "DATASET": DATASET,
+    "GOLD_TABLE": GOLD_TABLE
+}.items() if not val]
+
+if missing_vars:
+    logger.error(f"Missing critical environment variables: {', '.join(missing_vars)}. Please check .env file at {env_path}")
 
 # ===========================
 # CLIENT INITIALIZATION
@@ -74,7 +84,18 @@ if not all([PROJECT_ID, DATASET, GOLD_TABLE, OPENAI_API_KEY]):
 try:
     storage_client = storage.Client(project=PROJECT_ID)
     bq_client = bigquery.Client(project=PROJECT_ID)
-    openai_client = OpenAI(api_key=OPENAI_API_KEY)
+    # OpenAI Client Check
+    OPENAI_API_KEY_VAL = os.getenv("OPENAI_API_KEY")
+    openai_client = None
+
+    if OPENAI_API_KEY_VAL:
+        try:
+            openai_client = OpenAI(api_key=OPENAI_API_KEY_VAL)
+            logger.info("OpenAI client initialized successfully")
+        except Exception as e:
+            logger.warning(f"Failed to initialize OpenAI client: {e}")
+    else:
+        logger.warning("OPENAI_API_KEY not found. AI features will be disabled.")
 except Exception as e:
     logger.error(f"Failed to initialize clients: {e}")
     # We do not fallback to mock mode anymore
@@ -248,9 +269,10 @@ def stock_screener(
     """Advanced stock screener with multiple technical indicator filters"""
     try:
         conditions = []
+        filters_applied = []
         
-        # Always get latest data
-        conditions.append(f"trade_date = (SELECT MAX(trade_date) FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`)")
+        # Get data from last 7 days (to ensure we get latest)
+        conditions.append("trade_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)")
         
         # Exclude crypto if requested
         if not include_crypto:
@@ -259,111 +281,112 @@ def stock_screener(
         # Price filters
         if price_min is not None:
             conditions.append(f"close >= {price_min}")
+            filters_applied.append(f"Price >= ${price_min}")
         if price_max is not None:
             conditions.append(f"close <= {price_max}")
+            filters_applied.append(f"Price <= ${price_max}")
         
         # RSI filters
         if rsi_min is not None:
             conditions.append(f"rsi_14 >= {rsi_min}")
+            filters_applied.append(f"RSI >= {rsi_min}")
         if rsi_max is not None:
             conditions.append(f"rsi_14 <= {rsi_max}")
+            filters_applied.append(f"RSI <= {rsi_max}")
         if rsi_oversold:
             conditions.append("rsi_14 < 30")
+            filters_applied.append("RSI Oversold (< 30)")
         if rsi_overbought:
             conditions.append("rsi_14 > 70")
+            filters_applied.append("RSI Overbought (> 70)")
         
         # MACD filters
         if macd_positive is not None:
             if macd_positive:
                 conditions.append("macd_histogram > 0")
+                filters_applied.append("MACD Positive")
             else:
                 conditions.append("macd_histogram < 0")
+                filters_applied.append("MACD Negative")
         if macd_bullish:
             conditions.append("macd_histogram > 0")
+            filters_applied.append("MACD Bullish")
         
         # MA filters
         if above_ma20:
             conditions.append("close > ma_20")
+            filters_applied.append("Above MA20")
         if above_ma50:
             conditions.append("close > ma_50")
+            filters_applied.append("Above MA50")
         if golden_cross:
             conditions.append("ma_20 > ma_50")
+            filters_applied.append("Golden Cross")
         if death_cross:
             conditions.append("ma_20 < ma_50")
+            filters_applied.append("Death Cross")
         
         # Bollinger Bands filters
         if bb_squeeze:
             conditions.append("bb_width < 0.1")
+            filters_applied.append("BB Squeeze")
         if price_at_lower_bb:
-            conditions.append("close <= bb_lower * 1.02")  # Within 2% of lower band
+            conditions.append("close <= bb_lower * 1.02")
+            filters_applied.append("At Lower BB")
         if price_at_upper_bb:
-            conditions.append("close >= bb_upper * 0.98")  # Within 2% of upper band
+            conditions.append("close >= bb_upper * 0.98")
+            filters_applied.append("At Upper BB")
         
         # Volume filters
         if high_volume:
             conditions.append("volume_ratio > 1.5")
+            filters_applied.append("High Volume")
         if low_volume:
             conditions.append("volume_ratio < 0.5")
+            filters_applied.append("Low Volume")
         
         # Build WHERE clause
         where_clause = " AND ".join(conditions)
         
-        # Build SQL query
+        # Simple, fast query - get latest data for each ticker
         sql = f"""
             SELECT 
                 ticker,
-                trade_date,
                 close,
                 daily_return,
                 rsi_14,
-                ma_20,
-                ma_50,
-                macd_line,
-                macd_signal,
-                macd_histogram,
-                bb_upper,
-                bb_middle,
-                bb_lower,
-                bb_width,
-                vma_20,
-                volume_ratio,
-                total_volume
-            FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
-            WHERE {where_clause}
+                macd_histogram
+            FROM (
+                SELECT *,
+                    ROW_NUMBER() OVER (PARTITION BY ticker ORDER BY trade_date DESC) as rn
+                FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
+                WHERE {where_clause}
+            )
+            WHERE rn = 1
             ORDER BY ticker
         """
         
+        logger.info(f"Screener query executing...")
         df = bq_client.query(sql).to_dataframe()
         
         # Convert NaN to None for JSON serialization
         df = df.replace({pd.NA: None, float('nan'): None})
         
-        # Build response with filter summary
+        # Simplified response
+        results = df.to_dict(orient="records")
+        
+        logger.info(f"Screener returned {len(results)} results")
+        
         return {
-            "filters_applied": {
-                "price_range": [price_min, price_max] if price_min or price_max else None,
-                "rsi_range": [rsi_min, rsi_max] if rsi_min or rsi_max else None,
-                "rsi_oversold": rsi_oversold,
-                "rsi_overbought": rsi_overbought,
-                "macd_positive": macd_positive,
-                "macd_bullish": macd_bullish,
-                "above_ma20": above_ma20,
-                "above_ma50": above_ma50,
-                "golden_cross": golden_cross,
-                "death_cross": death_cross,
-                "bb_squeeze": bb_squeeze,
-                "price_at_lower_bb": price_at_lower_bb,
-                "price_at_upper_bb": price_at_upper_bb,
-                "high_volume": high_volume,
-                "low_volume": low_volume,
-                "include_crypto": include_crypto
-            },
-            "results": df.to_dict(orient="records"),
-            "count": len(df)
+            "results": results,
+            "count": len(results),
+            "filters_applied": filters_applied
         }
     except Exception as e:
         logger.error(f"Screener failed: {e}")
         raise HTTPException(status_code=500, detail=f"Screener error: {str(e)}")
+
+
 
 
 @app.post("/ask")
@@ -383,60 +406,119 @@ def ask(request: AskRequest):
     if any(word in question.lower() for word in forbidden_words):
         raise HTTPException(status_code=400, detail="Invalid question content.")
     
-    logger.info(f"Processing question: {question[:100]}...")  # Log first 100 chars
+    logger.info(f"Processing question: {question[:100]}...")
 
-    # Fetch recent market data (Last 1 Year to allow robust analysis)
-    query = f"""
-        SELECT ticker, trade_date, close, rsi_14, ma_20, ma_50
-        FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
-        WHERE trade_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 365 DAY)
-        ORDER BY ticker, trade_date DESC
-        LIMIT 2000
-    """
-    try:
-        df = bq_client.query(query).to_dataframe()
-    except Exception as e:
-        logger.error(f"BQ query failed: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch market data.")
-
-    if df.empty:
-        raise HTTPException(status_code=500, detail="No market data available.")
-
-    df = df.replace([np.inf, -np.inf], np.nan).where(pd.notnull(df), None)
-    # Pass ALL fetched data (up to 2000 rows) to the AI, not just head(50)
-    df_str = df.to_string(index=False, max_rows=None)
-
-    # OpenAI analysis
-    prompt = f"User question: {question}\n\nRecent Market Data:\n{df_str}\n\nAnalyze trends, momentum, and risks. IMPORTANT: Always mention the specific Date (YYYY-MM-DD) for every price or event you cite."
-    try:
-        completion = openai_client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": f"You are a neutral stock analyst focusing on BigFive. Today is {date.today()}. Do NOT use markdown bolding (e.g., **text**) in your response."},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.7,
+    if not openai_client:
+        logger.error("OpenAI client not initialized (missing API Key)")
+        raise HTTPException(
+            status_code=503, 
+            detail="AI Analysis is temporarily disabled. Please ensure the OPENAI_API_KEY is set in the production environment."
         )
-        answer = completion.choices[0].message.content.strip()
-    except Exception as e:
-        logger.error(f"OpenAI error: {e}")
-        raise HTTPException(status_code=500, detail="AI Analysis failed.")
 
-    # Detect ticker and archive
+    # Detect ticker early to fetch NEWS sentiment
     detected_ticker = "GENERAL"
     q_upper = question.upper()
     for t in BIG_FIVE_TICKERS:
         if t in q_upper:
             detected_ticker = t
             break
-    archive_to_gcs(detected_ticker, question, answer)
+    
+    # Fetch recent market data with FULL Technical Indicators
+    stock_query = f"""
+        SELECT 
+            ticker, trade_date, close, daily_return,
+            rsi_14, macd_line, macd_signal, macd_histogram,
+            bb_upper, bb_middle, bb_lower, volume_ratio
+        FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
+        WHERE trade_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY)
+        ORDER BY ticker, trade_date DESC
+        LIMIT 1000
+    """
+    
+    # Fetch recent global macro data
+    macro_query = f"""
+        SELECT series_id, series_name, observation_date, value
+        FROM `{PROJECT_ID}.{DATASET}.fred_data`
+        WHERE observation_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 35 DAY)
+        ORDER BY series_id, observation_date DESC
+        LIMIT 100
+    """
 
+    try:
+        stock_df = bq_client.query(stock_query).to_dataframe()
+        macro_df = bq_client.query(macro_query).to_dataframe()
+    except Exception as e:
+        logger.error(f"BQ query failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch market data from BigQuery.")
+
+    if stock_df.empty:
+        raise HTTPException(status_code=500, detail="No market data available yet.")
+
+    # Fetch News Sentiment for context if a ticker is detected
+    news_context = "No recent news context available."
+    if detected_ticker != "GENERAL":
+        try:
+            news_res = news_sentiment(ticker=detected_ticker, limit=5)
+            if news_res.get("articles"):
+                headlines = [f"- {a['title']} ({a['source']})" for a in news_res["articles"]]
+                news_context = "\n".join(headlines)
+        except Exception as e:
+            logger.error(f"Failed to fetch news context for AI: {e}")
+
+    stock_df = stock_df.replace([np.inf, -np.inf], np.nan).where(pd.notnull(stock_df), None)
+    stock_str = stock_df.to_string(index=False, max_rows=None)
+    
+    macro_str = ""
+    if not macro_df.empty:
+        macro_df = macro_df.replace([np.inf, -np.inf], np.nan).where(pd.notnull(macro_df), None)
+        macro_str = macro_df.to_string(index=False, max_rows=None)
+
+    # OpenAI analysis - Triple-Layer Synthesis (Technical + Macro + Sentiment)
+    prompt = f"""
+User Question: {question}
+
+LAYER 1: Technical & Momentum Data (Last 60 Days):
+{stock_str}
+
+LAYER 2: Global Macro Indicators (VIX, 10Y Yield, etc.):
+{macro_str}
+
+LAYER 3: Recent News Headlines for {detected_ticker}:
+{news_context}
+
+ANALYSIS INSTRUCTIONS:
+1. Synthesize all 3 layers. 
+2. Match Technicals (RSI/MACD) against Macro (VIX/Yields). 
+3. Incorporate News Sentiment if relevant.
+4. IMPORTANT: Cite specific Dates (YYYY-MM-DD) and specific values (e.g. "RSI was 72.5") for every data point.
+5. Provide a clear "Risk Assessment" based on the convergence of these signals.
+"""
+    try:
+        completion = openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": f"You are a professional financial analyst. Today is {date.today()}. Use a neutral, institutional tone. Do NOT use markdown bolding (e.g., **text**)."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.5,
+        )
+        answer = completion.choices[0].message.content.strip()
+    except Exception as e:
+        logger.error(f"OpenAI error: {e}")
+        raise HTTPException(status_code=500, detail="AI Analysis failed (GPT Synthesis Error).")
+
+    archive_to_gcs(detected_ticker, question, answer)
     return {"answer": answer}
 
 @app.get("/chart-data")
 def chart_data(ticker: str = "AAPL"):
     query = f"""
-        SELECT trade_date, open, high, low, close, ma_20, ma_50, rsi_14, total_volume
+        SELECT 
+            trade_date, open, high, low, close, 
+            ma_20, ma_50, rsi_14, 
+            total_volume, vma_20,
+            macd_line, macd_signal, macd_histogram,
+            bb_upper, bb_middle, bb_lower, bb_width
         FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
         WHERE ticker = @ticker
         ORDER BY trade_date DESC LIMIT 2000
@@ -478,12 +560,14 @@ def news_sentiment(ticker: str = "AAPL", limit: int = 10):
         company = TICKER_TO_COMPANY.get(symbol, symbol)
         q_param = f'"{company}" AND (stock OR earnings OR analyst)'
 
+    three_days_ago = (datetime.now() - pd.Timedelta(days=3)).strftime('%Y-%m-%d')
     params = {
         "q": q_param,
         "apiKey": NEWS_API_KEY,
         "domains": FINANCE_DOMAINS,
         "pageSize": limit * 5,
-        "sortBy": "publishedAt"
+        "sortBy": "publishedAt",
+        "from": three_days_ago
     }
 
     try:
@@ -553,7 +637,9 @@ def news_sentiment(ticker: str = "AAPL", limit: int = 10):
     headlines = "\n".join([f"- {title}" for title in [a['title'] for a in filtered]])
     
     if not headlines.strip():
-        summary = "No significant news found in the last 24 hours to generate a sentiment summary."
+        summary = "No significant news found in the last 72 hours to generate a sentiment summary."
+    elif not openai_client:
+        summary = "Sentiment analysis currently unavailable (Missing AI API Key)."
     else:
         try:
             completion = openai_client.chat.completions.create(
@@ -564,23 +650,44 @@ def news_sentiment(ticker: str = "AAPL", limit: int = 10):
             summary = completion.choices[0].message.content.strip().replace("*", "")
         except Exception as e:
             logger.error(f"OpenAI sentiment error: {e}")
-            summary = "Sentiment analysis currently unavailable."
+            summary = "Sentiment analysis currently unavailable (API Error)."
 
     response = {"ticker": symbol, "articles": filtered, "sentiment_summary": summary}
     set_news_cache(f"{symbol}-sentiment", response)
     return response
 
 @app.get("/big-five-dashboard")
-def big_five_dashboard(days: int = 365, include_crypto: bool = True):
-    """Get dashboard data for FAANG stocks and optionally crypto"""
+def big_five_dashboard(days: int = 30, include_crypto: bool = True):
+    """Get dashboard data for FAANG stocks and optionally crypto with sparkline history"""
     tickers = ALL_TICKERS if include_crypto else BIG_FIVE_TICKERS
     
     query = f"""
-        SELECT ticker, trade_date, close, daily_return, rsi_14
-        FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
-        WHERE trade_date >= DATE_SUB(CURRENT_DATE(), INTERVAL @days DAY)
-        AND ticker IN UNNEST(@tickers)
-        ORDER BY trade_date DESC
+        WITH ranked_data AS (
+            SELECT 
+                ticker, 
+                trade_date, 
+                close, 
+                daily_return, 
+                rsi_14,
+                ROW_NUMBER() OVER (PARTITION BY ticker ORDER BY trade_date DESC) as rn
+            FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
+            WHERE trade_date >= DATE_SUB(CURRENT_DATE(), INTERVAL @days DAY)
+            AND ticker IN UNNEST(@tickers)
+        ),
+        history_agg AS (
+            SELECT
+                ticker,
+                ARRAY_AGG(STRUCT(CAST(trade_date AS STRING) as date, close) ORDER BY trade_date ASC) as history
+            FROM ranked_data
+            WHERE rn <= 30
+            GROUP BY ticker
+        )
+        SELECT 
+            l.ticker, l.trade_date, l.close, l.daily_return, l.rsi_14,
+            h.history
+        FROM ranked_data l
+        LEFT JOIN history_agg h ON l.ticker = h.ticker
+        WHERE l.rn = 1
     """
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
@@ -593,14 +700,20 @@ def big_five_dashboard(days: int = 365, include_crypto: bool = True):
     if df.empty:
          return {"tickers": []}
 
-    latest = df.sort_values("trade_date", ascending=False).groupby("ticker").head(1)
-    
-    # Enforce fixed order
-    records = latest.to_dict(orient="records")
+    # Clean history struct
+    if 'history' in df.columns:
+        def clean_history(h):
+            if h is None: return []
+            return [{"date": x['date'], "close": x['close']} for x in h]
+        df['history'] = df['history'].apply(clean_history)
+
+    # Sort by defined order
+    records = df.to_dict(orient="records")
     try:
-        records.sort(key=lambda x: tickers.index(x['ticker']))
-    except ValueError:
-        pass # Handle case if unknown ticker slips in
+        ticker_order = {t: i for i, t in enumerate(tickers)}
+        records.sort(key=lambda x: ticker_order.get(x['ticker'], 999))
+    except Exception:
+        pass
     
     return {"tickers": records}
 
@@ -615,26 +728,30 @@ def get_economic_indicators(days: int = 365):
     """Get latest economic indicators from FRED"""
     try:
         query = f"""
-            WITH latest_values AS (
-                SELECT 
+            WITH unique_data AS (
+                SELECT DISTINCT
                     series_id,
                     series_name,
                     observation_date,
                     value,
                     frequency,
-                    units,
-                    ROW_NUMBER() OVER (PARTITION BY series_id ORDER BY observation_date DESC) as rn
+                    units
                 FROM `{PROJECT_ID}.{DATASET}.fred_data`
-                WHERE observation_date >= DATE_SUB(CURRENT_DATE(), INTERVAL @days DAY)
+                WHERE observation_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 730 DAY) -- 2 years
             ),
-            previous_values AS (
+            ranked_data AS (
                 SELECT 
-                    series_id,
-                    value as prev_value,
-                    observation_date as prev_date,
+                    *,
                     ROW_NUMBER() OVER (PARTITION BY series_id ORDER BY observation_date DESC) as rn
-                FROM `{PROJECT_ID}.{DATASET}.fred_data`
-                WHERE observation_date >= DATE_SUB(CURRENT_DATE(), INTERVAL @days DAY)
+                FROM unique_data
+            ),
+            history_agg AS (
+                SELECT
+                    series_id,
+                    ARRAY_AGG(STRUCT(CAST(observation_date AS STRING) as date, value) ORDER BY observation_date ASC) as history
+                FROM ranked_data
+                WHERE rn <= 24 -- Last 24 points for sparkline
+                GROUP BY series_id
             )
             SELECT 
                 l.series_id,
@@ -643,24 +760,34 @@ def get_economic_indicators(days: int = 365):
                 l.value as latest_value,
                 l.frequency,
                 l.units,
-                p.prev_value,
-                p.prev_date,
-                SAFE_DIVIDE((l.value - p.prev_value), p.prev_value) * 100 as change_pct
-            FROM latest_values l
-            LEFT JOIN previous_values p 
+                p.value as prev_value,
+                p.observation_date as prev_date,
+                SAFE_DIVIDE((l.value - p.value), p.value) * 100 as change_pct,
+                h.history
+            FROM ranked_data l
+            LEFT JOIN ranked_data p 
                 ON l.series_id = p.series_id AND p.rn = 2
+            LEFT JOIN history_agg h
+                ON l.series_id = h.series_id
             WHERE l.rn = 1
             ORDER BY l.series_id
         """
         
-        job_config = bigquery.QueryJobConfig(
-            query_parameters=[
-                bigquery.ScalarQueryParameter("days", "INT64", days)
-            ]
-        )
+        df = bq_client.query(query).to_dataframe()
         
-        df = bq_client.query(query, job_config=job_config).to_dataframe()
-        
+        # Convert history array of Structs/Rows to list of dicts
+        if 'history' in df.columns and not df.empty:
+            def clean_history(h):
+                if h is None: return []
+                # h is array of Row/dict, convert to simple dict
+                return [{"date": x['date'], "value": x['value']} for x in h]
+            
+            try:
+                df['history'] = df['history'].apply(clean_history)
+            except Exception as e:
+                logger.error(f"Error parsing history: {e}")
+                df['history'] = []
+
         if df.empty:
             return {"indicators": [], "count": 0}
         

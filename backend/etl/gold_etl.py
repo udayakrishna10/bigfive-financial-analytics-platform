@@ -243,7 +243,7 @@ def run_gold_etl():
 
       SELECT *
       FROM final
-      WHERE trade_date > (SELECT IFNULL(MAX(trade_date), DATE '1900-01-01') FROM `{GOLD_REF}`)
+      WHERE trade_date > DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
     ) AS src
     ON gold.trade_date = src.trade_date AND gold.ticker = src.ticker
 

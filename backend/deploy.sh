@@ -72,6 +72,26 @@ gcloud run jobs deploy gold-etl-job \
     --max-retries 1 \
     --task-timeout 300s
 
+# Crypto ETL
+gcloud run jobs deploy crypto-etl-job \
+    --image $IMAGE_URI \
+    --region $REGION \
+    --command python \
+    --args etl/bronze_crypto_etl.py \
+    --set-env-vars GCP_PROJECT=$PROJECT_ID,GCP_DATASET=faang_dataset,BRONZE_TABLE=bronze \
+    --max-retries 1 \
+    --task-timeout 300s
+
+# FRED Economic ETL
+gcloud run jobs deploy fred-etl-job \
+    --image $IMAGE_URI \
+    --region $REGION \
+    --command python \
+    --args etl/bronze_fred_etl.py \
+    --set-env-vars GCP_PROJECT=$PROJECT_ID,GCP_DATASET=faang_dataset,FRED_TABLE=fred_economic_data,FRED_API_KEY=$FRED_API_KEY \
+    --max-retries 1 \
+    --task-timeout 300s
+
 
 # 6. Schedule Jobs (Cloud Scheduler)
 # Schedule: Bronze (4:30 PM ET), Silver (4:45 PM ET), Gold (5:00 PM ET)
@@ -116,13 +136,19 @@ create_scheduler() {
         --quiet
 }
 
-# Bronze - 4:15 PM ET
+# Bronze - 4:15 PM ET (weekdays, after market close)
 create_scheduler "bronze-etl-job" "bronze-daily-trigger" "15 16 * * 1-5"
+
+# Crypto - 7:00 PM ET (daily, cleaner daily boundary for 24/7 markets)
+create_scheduler "crypto-etl-job" "crypto-daily-trigger" "0 19 * * *"
 
 # Silver - 4:30 PM ET
 create_scheduler "silver-etl-job" "silver-daily-trigger" "30 16 * * 1-5"
 
 # Gold - 4:45 PM ET
 create_scheduler "gold-etl-job" "gold-daily-trigger" "45 16 * * 1-5"
+
+# FRED Economic Data - 6:00 AM ET Monday (weekly, after FRED updates complete)
+create_scheduler "fred-etl-job" "fred-weekly-trigger" "0 6 * * 1"
 
 echo "Deployment Complete! 🚀"

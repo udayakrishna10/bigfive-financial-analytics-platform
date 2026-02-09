@@ -4,6 +4,8 @@ export const STOCK_LOGOS: Record<string, string> = {
     META: "https://upload.wikimedia.org/wikipedia/commons/a/ab/Meta-Logo.png",
     NFLX: "https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg",
     GOOGL: "https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg",
+    BTC: "/logos/btc.png",
+    ETH: "/logos/eth.png",
 };
 
 export const NEWS_LOGOS: Record<string, string> = {

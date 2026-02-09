@@ -11,14 +11,15 @@ An end-to-end financial data engineering and AI solution providing real-time ana
 
 The project evolved through two distinct architectural phases to achieve optimal cost-performance ratio.
 
-| Feature | Phase 1: Enterprise Native (GKE) | Phase 2: Serverless Optimized (Cloud Run) |
-| :--- | :--- | :--- |
-| **Compute** | GKE Autopilot (Always-On) | Cloud Run Jobs (Scale-to-Zero) |
-| **Orchestration** | Apache Airflow (Cloud Composer) | Native Cloud Scheduler |
-| **Storage Strategy** | Monolithic BigQuery Storage | BigQuery + GCS "Intelligence Sink" |
-| **Operational Cost** | High (~$100+/month idle fees) | Minimal (99% Reduction) |
-| **Maintenance** | Cluster & Node Management | Zero-Ops (Managed Serverless) |
-| **Best Use Case** | Continuous Streaming / High Traffic | Daily Post-Market Batch Processing |
+| Feature | Phase 1: Enterprise Native (GKE) | Phase 2: Serverless Optimized | Phase 3: Global Intelligence |
+| :--- | :--- | :--- | :--- |
+| **Compute** | GKE Autopilot (Always-On) | Cloud Run Jobs (Scale-to-Zero) | Serverless + AI Agentic (GPT-4) |
+| **Orchestration** | Apache Airflow (Cloud Composer) | Native Cloud Scheduler | Real-time Tech & Crypto Sync |
+| **Data Strategy** | Monolithic BigQuery Storage | BigQuery + GCS "Intelligence Sink" | Global FRED Macro Integration |
+| **Operational Cost** | High (~$100+/month idle fees) | Minimal (99% Reduction) | Optimal ROI (Predictive Analytics) |
+| **CI/CD Pipeline** | Manual / Cloud Build | GitHub Actions (Automated) | Pull Request & Verified Deploy |
+| **Maintenance** | Cluster & Node Management | Zero-Ops (Managed Serverless) | Automated Data Quality Logic |
+| **Best Use Case** | Continuous Streaming / High Traffic | Daily Post-Market Batch Processing | Technical Analysis & Macro Forecasts |
 
 ## Architecture: The "Low-Cost" Serverless Evolution
 The platform follows a decoupled, batch-oriented architecture optimized for the 6:00 PM EST post-market settlement:
@@ -44,7 +45,8 @@ I shifted from GKE and Cloud Composer to a Serverless model to prove that enterp
 | **Data Platform** | Google BigQuery, Google Cloud Storage (GCS) |
 | **Backend API** | Python, FastAPI, Pandas, NumPy |
 | **AI & Intelligence** | OpenAI GPT-4o-mini, News Sentiment Engineering |
-| **Quant Analysis** | RSI (14-day), SMA (20/50), Daily Returns |
+| **External APIs** | **FRED (Macro Docs)**, **CoinGecko (Crypto)**, **NewsAPI**, **yFinance** |
+| **Quant Analysis** | RSI (14-day), EMA, MACD, Bollinger Bands |
 
 
 ## The ETL Pipeline: Post-Market Batch Processing
@@ -52,7 +54,8 @@ The platform’s engine is a fully automated, 3-stage pipeline executed daily vi
 
 ### 1. Extraction (Ingestion Layer)
 *   **Trigger**: Cloud Scheduler initiates the process at 6:00 PM EST once market settlement is finalized.
-*   **Multi-Source Fetch**: Cloud Run Jobs pull market OHLCV data via yFinance and sentiment data from tier-1 sources like CNBC, Bloomberg, and WSJ.
+*   **Multi-Source Fetch**: Cloud Run Jobs pull market OHLCV via **yFinance**, live Crypto prices via **CoinGecko**, and Global Macro indicators (VIX, Yields) via **FRED API**.
+*   **Sentiment Search**: Financial news headers are pulled from **NewsAPI.org**, refined by a strict "Institutional Reputation" filter.
 *   **Bronze Storage**: Raw payloads land in BigQuery Bronze tables as immutable historical snapshots.
 
 ### 2. Transformation (Processing Layer)

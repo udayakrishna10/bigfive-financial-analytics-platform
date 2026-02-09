@@ -187,7 +187,7 @@ def deduplicate_against_bq(df: pd.DataFrame) -> pd.DataFrame:
         return df
     
     series_ids = df["series_id"].unique().tolist()
-    min_date = df["observation_date"].min()
+    min_date = df["observation_date"].min().date()
     
     query = f"""
         SELECT series_id, observation_date

@@ -5,7 +5,8 @@ import {
   Sparkles,
   Newspaper,
   Activity,
-  Server
+  Server,
+  TrendingUp
 } from 'lucide-react';
 
 
@@ -18,6 +19,7 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
   const menuItems = [
     { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'economic', label: 'Economic Data', icon: TrendingUp },
     { id: 'insights', label: 'AI Insights', icon: Sparkles },
     { id: 'news', label: 'Sentiment', icon: Newspaper },
     { id: 'architecture', label: 'Architecture', icon: Activity },

@@ -5,6 +5,7 @@ export interface TickerData {
   close: number;
   daily_return: number;
   rsi_14: number;
+  history?: { date: string; close: number }[];
 }
 
 export const api = {

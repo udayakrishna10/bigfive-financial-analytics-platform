@@ -44,7 +44,8 @@ table_ref = f"{PROJECT_ID}.{DATASET_ID}.{TABLE_ID}"
 def get_start_date() -> pd.Timestamp:
     """Return last timestamp; else 6 months back."""
     try:
-        query = f"SELECT MAX(timestamp) as last_ts FROM `{table_ref}`"
+        tickers_str = "', '".join(BIG_FIVE_SYMBOLS)
+        query = f"SELECT MAX(timestamp) as last_ts FROM `{table_ref}` WHERE ticker IN ('{tickers_str}')"
         result = client.query(query).to_dataframe()
         last_ts = result["last_ts"].iloc[0]
         

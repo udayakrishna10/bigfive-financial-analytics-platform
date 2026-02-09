@@ -7,22 +7,30 @@ import { AIChat } from './components/AIChat.tsx';
 import { SentimentFeed } from './components/SentimentFeed';
 import { HealthView } from './components/HealthView';
 import { ArchitectureView } from './components/ArchitectureView';
+import { EconomicIndicators } from './components/EconomicIndicators';
 import { ThemeToggle } from './components/ThemeToggle';
 import { Toaster } from 'sonner';
 
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [selectedTicker, setSelectedTicker] = useState('AAPL');
+
+  const handleTickerSelect = (ticker: string) => {
+    setSelectedTicker(ticker);
+    setActiveTab('analytics');
+  };
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard />;
-      case 'analytics': return <ChartSection />;
+      case 'dashboard': return <Dashboard onTickerSelect={handleTickerSelect} />;
+      case 'analytics': return <ChartSection ticker={selectedTicker} onTickerChange={setSelectedTicker} />;
       case 'insights': return <AIChat />;
       case 'news': return <SentimentFeed />;
+      case 'economic': return <EconomicIndicators />;
       case 'architecture': return <ArchitectureView />;
       case 'health': return <HealthView />;
-      default: return <Dashboard />;
+      default: return <Dashboard onTickerSelect={handleTickerSelect} />;
     }
   };
 
