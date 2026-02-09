@@ -51,6 +51,43 @@ I shifted from GKE and Cloud Composer to a Serverless model to prove that enterp
 *   **Operational Simplicity**: Eliminated node management and cluster maintenance.
 *   **Optimized Storage**: By offloading unstructured AI text to GCS, the database remains lean and highly performant.
 
+## Engineering Challenges
+
+### Challenge 1: Infrastructure Overkill & Cost Optimization
+*   **Problem**: Initial GKE/Composer architecture carried high "idle fees" for a process that only runs once daily.
+*   **Solution**: Migrated the stack to Cloud Run Jobs and Docker.
+*   **Impact**: Reduced fixed operational costs to minimal levels.
+
+### Challenge 2: The "Silver-to-Gold" Null Propagation
+*   **Problem**: Daily Returns were null across layers because daily batches lacked the previous day's price for comparison.
+*   **Solution**: Implemented Cross-Batch Lag Logic in BigQuery using `LAG() OVER(...)` window functions.
+*   **Impact**: Fixed broken time-series charts, ensuring accurate percentage-change visualization.
+
+### Challenge 3: Quant Indicator Accuracy & "Warm-up" Periods
+*   **Problem**: RSI and SMA produce skewed values if calculated from Day 1 without enough historical context.
+*   **Solution**: Implemented Strict Null Enforcement. Forced the first 19 records (20-SMA) and 49 records (50-SMA) to NULL.
+*   **Impact**: 100% mathematical integrity; signals are only visualized once the algorithm has sufficient data.
+
+### Challenge 4: Financial News Signal-to-Noise Ratio
+*   **Problem**: General news feeds were cluttered with irrelevant gossip and clickbait.
+*   **Solution**: Engineered a Reputation-Based Filter focusing on tier-1 sources like CNBC, Bloomberg, and WSJ.
+*   **Impact**: Significantly higher fidelity in AI summaries by processing only professional reporting.
+
+### Challenge 5: Efficient Persistence of Unstructured Data
+*   **Problem**: Storing long-form AI text in relational databases is cost-inefficient for large archives.
+*   **Solution**: Developed an "Intelligence Sink" pushing daily summaries as `.txt` files to GCS.
+*   **Impact**: Created a high-durability, low-cost archive of historical market sentiment.
+
+### Challenge 6: Post-Market Data Settlement
+*   **Problem**: Ingesting data too early (4:00 PM) led to inconsistent values due to after-hours settlement.
+*   **Solution**: Hard-coded the orchestration trigger to 4:15 PM EST.
+*   **Impact**: Guaranteed 100% accuracy for post-market reporting and technical indicator calculations.
+
+### Challenge 7: Generative AI Cost Governance
+*   **Problem**: Unrestricted access to OpenAI API risked unexpected billing spikes.
+*   **Solution**: Implemented a Global Rate Limiter strictly capping model calls at 50 requests per day.
+*   **Impact**: Guaranteed cost predictability while maintaining overhead for daily batch processing.
+
 ## Technical Stack
 
 | Category | Tools & Technologies |
