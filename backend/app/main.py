@@ -59,6 +59,13 @@ STOCK_KEYWORDS = [
     "price target", "analyst", "dividend",
 ]
 
+# Crypto keywords to filter out from stock news
+CRYPTO_KEYWORDS = [
+    "bitcoin", "btc", "ethereum", "eth", "crypto", "cryptocurrency",
+    "blockchain", "mining", "wallet", "satoshi", "altcoin", "defi",
+    "nft", "web3", "coinbase", "binance", "crypto market"
+]
+
 BUCKET_NAME = "faang-insights-logs"
 
 # ===========================
@@ -163,6 +170,9 @@ def archive_to_gcs(ticker: str, question: str, answer: str):
 def is_stock_related(title: str, description: str, company: str) -> bool:
     text = f"{title or ''} {description or ''}".lower()
     if company.lower() not in text:
+        return False
+    # Filter out crypto-related articles
+    if any(crypto_word in text for crypto_word in CRYPTO_KEYWORDS):
         return False
     return any(k in text for k in STOCK_KEYWORDS)
 
