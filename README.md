@@ -23,7 +23,7 @@ The project evolved through two distinct architectural phases to achieve optimal
 | Feature | Phase 1: Heavy Enterprise (GKE) | Phase 2: Serverless Optimized | Phase 3: Global Intelligence |
 | :--- | :--- | :--- | :--- |
 | **Compute** | GKE Autopilot (Always-On) | Cloud Run Jobs (Scale-to-Zero) | Serverless + GenAI Analysis |
-| **Orchestration** | Apache Airflow (Cloud Composer) | Native Cloud Scheduler | Real-time Cross-Market Sync |
+| **Orchestration** | Apache Airflow (Cloud Composer) | Native Cloud Scheduler | Multi-Asset Scheduled Orchestration |
 | **Data Strategy** | Monolithic BigQuery Storage | BigQuery + GCS "Intelligence Sink" | Multi-Asset Integration (Stocks/Crypto/Macro) |
 | **Operational Cost** | High (~$70/month idle fees) | ~$1/month (98.5% reduction) | Usage-Based Costing |
 | **CI/CD Pipeline** | Manual / Cloud Build | GitHub Actions (Automated) | Pull Request + Automated Deploy |

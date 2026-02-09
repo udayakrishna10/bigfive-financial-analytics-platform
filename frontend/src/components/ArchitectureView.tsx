@@ -13,7 +13,7 @@ export const ArchitectureView = () => {
                         Evolution of Architecture
                     </h2>
                     <p className="text-gray-700 dark:text-slate-300 max-w-3xl text-base leading-relaxed">
-                        The platform's transformation from legacy enterprise clusters (Phase 1) to a high-performance serverless core (Phase 2), now culminating in a global intelligence layer (Phase 3) for agentic AI and unified data synthesis.
+                        The platform evolved from expensive Kubernetes infrastructure (Phase 1) to cost-efficient serverless architecture (Phase 2), and now includes AI-powered market analysis across stocks, crypto, and economic data (Phase 3).
                     </p>
                 </div>
 
@@ -85,7 +85,7 @@ export const ArchitectureView = () => {
                                 </td>
                                 <td className="p-3 text-blue-700 dark:text-blue-200 font-bold bg-blue-500/5 relative">
                                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-400 to-blue-600" />
-                                    Real-time Cross-Market Sync
+                                    Multi-Asset Scheduled Orchestration
                                 </td>
                             </tr>
                             <tr className="hover:bg-blue-50/50 dark:hover:bg-white/5 transition-all duration-200 group">
@@ -207,7 +207,7 @@ export const ArchitectureView = () => {
                         <p className="text-gray-700 dark:text-slate-400 text-base">End-to-End Pipeline Visualization</p>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4">
                         {/* Step 1: Market Data */}
                         <div className="flex flex-col items-center group text-center w-full">
                             <h3 className="text-lg font-black bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-400 dark:to-blue-500 bg-clip-text text-transparent mb-3 whitespace-nowrap">Market Data</h3>
@@ -254,7 +254,14 @@ export const ArchitectureView = () => {
                             <div className="px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-emerald-600 dark:from-emerald-600 dark:to-emerald-700 rounded-xl text-[10px] text-white font-mono font-bold text-center shadow-lg shadow-emerald-500/30">REASONING</div>
                         </div>
 
-                        {/* Step 7: Frontend */}
+                        {/* Step 7: CI/CD */}
+                        <div className="flex flex-col items-center group">
+                            <h3 className="text-lg font-black bg-gradient-to-r from-orange-600 to-orange-700 dark:from-orange-400 dark:to-orange-500 bg-clip-text text-transparent mb-3 text-center">CI/CD</h3>
+                            <p className="text-xs text-gray-700 dark:text-slate-300 text-center mb-3 font-medium">GitHub Actions</p>
+                            <div className="px-3 py-1.5 bg-gradient-to-r from-orange-500 to-orange-600 dark:from-orange-600 dark:to-orange-700 rounded-xl text-[10px] text-white font-mono font-bold text-center shadow-lg shadow-orange-500/30">DEPLOY</div>
+                        </div>
+
+                        {/* Step 8: Frontend */}
                         <div className="flex flex-col items-center group">
                             <h3 className="text-lg font-black bg-gradient-to-r from-purple-600 to-purple-700 dark:from-purple-400 dark:to-purple-500 bg-clip-text text-transparent mb-3 text-center">Frontend</h3>
                             <p className="text-xs text-gray-700 dark:text-slate-300 text-center mb-3 font-medium">React/Vite</p>
