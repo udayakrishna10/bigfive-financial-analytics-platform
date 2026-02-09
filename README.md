@@ -105,7 +105,3 @@ The platform uses **GitHub Actions** for automated deployment. On every push to 
     *   **Silver Transformation**: Runs daily at 4:30 PM ET.
     *   **Gold Aggregation**: Runs daily at 4:45 PM ET.
 
-## **Udaya Krishna Karanam**  
-
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Profile-blue?style=flat&logo=linkedin)](https://www.linkedin.com/in/udayakrishnakaranam10)
-[![Email](https://img.shields.io/badge/Email-Contact-red?style=flat&logo=gmail)](mailto:ukrishn10@gmail.com)
