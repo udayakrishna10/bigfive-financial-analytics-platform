@@ -108,7 +108,7 @@ export const ArchitectureView = () => {
                                     <DollarSign size={20} className="text-red-500/70 group-hover:text-red-500 transition-colors" />
                                     Operational Cost
                                 </td>
-                                <td className="p-3 text-red-700 dark:text-red-300 font-semibold bg-red-500/5 dark:bg-red-900/10">High (~$100+/month idle fees)</td>
+                                <td className="p-3 text-red-700 dark:text-red-300 font-semibold bg-red-500/5 dark:bg-red-900/10">High (~$70/month idle fees)</td>
                                 <td className="p-3 text-emerald-700 dark:text-emerald-200 font-medium bg-emerald-500/5 relative">
                                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-emerald-600" />
                                     Scale-to-Zero Efficiency
