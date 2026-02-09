@@ -35,7 +35,7 @@ export const SentimentFeed = ({ ticker = "AAPL" }) => {
             <div className="p-1.5 bg-purple-500/10 rounded-lg border border-purple-500/20">
               <Globe className="text-purple-500 dark:text-purple-400" size={18} />
             </div>
-            <h2 className="text-xl font-black bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">Global Market Pulse</h2>
+            <h2 className="text-xl font-black bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 bg-clip-text text-transparent">Market Pulse</h2>
           </div>
           <span className="text-[10px] text-gray-600 dark:text-slate-400 font-mono font-bold border border-gray-200 dark:border-slate-700 px-2 py-0.5 rounded-lg bg-white dark:bg-slate-800">
             50 req/day

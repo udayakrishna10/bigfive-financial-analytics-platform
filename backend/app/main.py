@@ -45,7 +45,8 @@ TICKER_TO_COMPANY = {
 FINANCE_DOMAINS = ",".join([
     "cnbc.com", "finance.yahoo.com", "bloomberg.com", "reuters.com", "wsj.com", 
     "barrons.com", "marketwatch.com", "investors.com", "fool.com", "seekingalpha.com",
-    "ft.com", "forbes.com", "businessinsider.com"
+    "ft.com", "forbes.com", "businessinsider.com", "benzinga.com",
+    "techcrunch.com", "theverge.com", "cointelegraph.com", "coindesk.com", "decrypt.co"
 ])
 REPUTED_SOURCES = {
     "Bloomberg", "Reuters", "The Wall Street Journal", "CNBC", "Financial Times",
@@ -560,7 +561,7 @@ def news_sentiment(ticker: str = "AAPL", limit: int = 10):
         company = TICKER_TO_COMPANY.get(symbol, symbol)
         q_param = f'"{company}" AND (stock OR earnings OR analyst)'
 
-    three_days_ago = (datetime.now() - pd.Timedelta(days=3)).strftime('%Y-%m-%d')
+    three_days_ago = (datetime.now() - pd.Timedelta(days=7)).strftime('%Y-%m-%d')
     params = {
         "q": q_param,
         "apiKey": NEWS_API_KEY,
@@ -581,8 +582,8 @@ def news_sentiment(ticker: str = "AAPL", limit: int = 10):
     filtered = []
     for a in articles:
         # For ALL, we trust the query more; for specific ticker, ensure company name is in text
-        # STRICT MODE: Search TITLE ONLY to ensure relevance.
-        text = f"{a.get('title') or ''}".lower()
+        # Search in BOTH title and description for company names and keywords
+        text = f"{a.get('title') or ''} {a.get('description') or ''}".lower()
         
         detected_company = symbol if symbol != "ALL" else "Market"
         if symbol == "ALL":
@@ -637,7 +638,7 @@ def news_sentiment(ticker: str = "AAPL", limit: int = 10):
     headlines = "\n".join([f"- {title}" for title in [a['title'] for a in filtered]])
     
     if not headlines.strip():
-        summary = "No significant news found in the last 72 hours to generate a sentiment summary."
+        summary = "No significant news found in the last 7 days to generate a sentiment summary."
     elif not openai_client:
         summary = "Sentiment analysis currently unavailable (Missing AI API Key)."
     else:
