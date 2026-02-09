@@ -26,7 +26,7 @@ The project evolved through two distinct architectural phases to achieve optimal
 | **Orchestration** | Apache Airflow (Cloud Composer) | Native Cloud Scheduler | Real-time Cross-Market Sync |
 | **Data Strategy** | Monolithic BigQuery Storage | BigQuery + GCS "Intelligence Sink" | Multi-Asset Integration (Stocks/Crypto/Macro) |
 | **Operational Cost** | High (~$70/month idle fees) | ~$1/month (98.5% reduction) | Usage-Based Costing |
-| **CI/CD Pipeline** | Manual / Cloud Build | GitHub Actions (Automated) | Automated Deploy + Quality Gates |
+| **CI/CD Pipeline** | Manual / Cloud Build | GitHub Actions (Automated) | Pull Request + Automated Deploy |
 | **Maintenance** | Cluster & Node Management | Zero-Ops (Managed Serverless) | Automated Data Quality Logic |
 | **Best Use Case** | Continuous Streaming / High Traffic | Daily Post-Market Batch Processing | Automated Insights |
 
