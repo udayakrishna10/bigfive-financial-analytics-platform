@@ -2,7 +2,16 @@
 **Nov 2026 – Feb 2026**
 
 ## Project Summary
-An end-to-end financial data engineering and AI solution providing real-time analytics and strategic sentiment for the "Big Tech" giants: Apple, Amazon, Meta, Netflix, and Google. The platform is designed for mathematical precision and cost-efficiency, processing daily market data and high-signal news to generate executive-level insights. Initially built on a heavy Kubernetes (GKE) stack, it was re-engineered into a Serverless, Low-Cost pipeline that automates the lifecycle from ingestion to historical archiving.
+An end-to-end data engineering and analytics platform providing real-time market intelligence for the "Big Five" tech giants. The project focuses on high-integrity data pipelines and cost-optimized cloud architecture, transitioning from a heavy Kubernetes (GKE) environment to a 99% cost-efficient Serverless stack.
+
+### Key Engineering Impact
+
+* **Architectural Migration**: Re-engineered a high-overhead GKE/Airflow stack into a Serverless "Scale-to-Zero" architecture using Google Cloud Run Jobs and Cloud Scheduler, achieving significant operational savings while automating daily 6:00 PM EST ingestion.
+* **Data Integrity & Quant Logic**: Solved the technical indicator "warm-up" paradox by enforcing strict 19 and 49-day null windows for 20/50 SMA and RSI calculations, ensuring 100% mathematical accuracy for trend analysis.
+* **Medallion Pipeline (BigQuery)**: Designed a 3-layer ETL flow (Bronze → Silver → Gold) utilizing SQL Window Functions (LAG) to resolve daily return null propagation across batch ingestions.
+* **Intelligence Sink (GCS)**: Implemented a cost-effective archival strategy for unstructured data by decoupling AI-generated summaries into timestamped .txt files in Google Cloud Storage, keeping the BigQuery warehouse lean and performant.
+* **Signal Processing**: Engineered a reputation-based news filter to ingest high-signal financial reporting from tier-1 sources (CNBC, Bloomberg, WSJ), optimizing LLM (GPT-4o-mini) processing efficiency.
+* **Governance**: Established a Global Rate Limiter and utilized GCP Secret Manager to ensure API security and strict budgetary control.
 
 ### Live @ https://bigfivebyuk.netlify.app
 
@@ -69,52 +78,6 @@ The platform’s engine is a fully automated, 3-stage pipeline executed daily vi
 *   **API Delivery**: FastAPI serves the Gold layer and GCS summaries to the React frontend.
 
 
-## Key Metrics & Business Impact
-
-| Metric | Value |
-| :--- | :--- |
-| **Operational Cost** | Minimal / Month (Serverless Optimized) |
-| **Update Frequency** | Daily @ 6:00 PM EST |
-| **Data Accuracy** | 100% (Enforced 19/49-Day Warm-up) |
-| **API Limit** | Global Cap of 50 Requests/Day |
-
-
-## Data Engineering & Technical Challenges
-
-### Challenge 1: Infrastructure Overkill & Cost Optimization
-*   **Problem**: Initial GKE/Composer architecture carried high "idle fees" for a process that only runs once daily.
-*   **Solution**: Migrated the stack to Cloud Run Jobs and Docker.
-*   **Impact**: Reduced fixed operational costs to minimal levels.
-
-### Challenge 2: The "Silver-to-Gold" Null Propagation
-*   **Problem**: Daily Returns were null across layers because daily batches lacked the previous day's price for comparison.
-*   **Solution**: Implemented Cross-Batch Lag Logic in BigQuery using `LAG() OVER(...)` window functions.
-*   **Impact**: Fixed broken time-series charts, ensuring accurate percentage-change visualization.
-
-### Challenge 3: Quant Indicator Accuracy & "Warm-up" Periods
-*   **Problem**: RSI and SMA produce skewed values if calculated from Day 1 without enough historical context.
-*   **Solution**: Implemented Strict Null Enforcement. Forced the first 19 records (20-SMA) and 49 records (50-SMA) to NULL.
-*   **Impact**: 100% mathematical integrity; signals are only visualized once the algorithm has sufficient data.
-
-### Challenge 4: Financial News Signal-to-Noise Ratio
-*   **Problem**: General news feeds were cluttered with irrelevant gossip and clickbait.
-*   **Solution**: Engineered a Reputation-Based Filter focusing on tier-1 sources like CNBC, Bloomberg, and WSJ.
-*   **Impact**: Significantly higher fidelity in AI summaries by processing only professional reporting.
-
-### Challenge 5: Efficient Persistence of Unstructured Data
-*   **Problem**: Storing long-form AI text in relational databases is cost-inefficient for large archives.
-*   **Solution**: Developed an "Intelligence Sink" pushing daily summaries as `.txt` files to GCS.
-*   **Impact**: Created a high-durability, low-cost archive of historical market sentiment.
-
-### Challenge 6: Post-Market Data Settlement
-*   **Problem**: Ingesting data too early (4:00 PM) led to inconsistent values due to after-hours settlement.
-*   **Solution**: Hard-coded the orchestration trigger to 6:00 PM EST.
-*   **Impact**: Guaranteed 100% accuracy for post-market reporting and technical indicator calculations.
-
-### Challenge 7: Generative AI Cost Governance
-*   **Problem**: Unrestricted access to OpenAI API risked unexpected billing spikes.
-*   **Solution**: Implemented a Global Rate Limiter strictly capping model calls at 50 requests per day.
-*   **Impact**: Guaranteed cost predictability while maintaining overhead for daily batch processing.
 
 ## Skills & Tools
 
