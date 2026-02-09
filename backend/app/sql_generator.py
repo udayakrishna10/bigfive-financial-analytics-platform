@@ -13,11 +13,12 @@ def generate_sql(question: str) -> str:
     - trade_date (DATE)
     - open, high, low, close (FLOAT)
     - total_volume (INTEGER)
-    - avg_ma_10, ma_20, ma_50 (FLOAT)
-    - avg_return_1h, daily_return, cumulative_return (FLOAT)
+    - ma_20, ma_50 (FLOAT)
+    - daily_return, cumulative_return (FLOAT)
     - rsi_14 (FLOAT)
-    - bollinger_upper, bollinger_lower (FLOAT)
-    - macd_line, signal_line, macd_histogram (FLOAT)
+    - bb_upper, bb_middle, bb_lower, bb_width (FLOAT)
+    - macd_line, macd_signal, macd_histogram (FLOAT)
+    - vma_20, volume_ratio (FLOAT)
     """
 
     client = OpenAI()

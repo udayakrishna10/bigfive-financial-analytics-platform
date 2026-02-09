@@ -661,61 +661,66 @@ def big_five_dashboard(days: int = 30, include_crypto: bool = True):
     """Get dashboard data for FAANG stocks and optionally crypto with sparkline history"""
     tickers = ALL_TICKERS if include_crypto else BIG_FIVE_TICKERS
     
-    query = f"""
-        WITH ranked_data AS (
-            SELECT 
-                ticker, 
-                trade_date, 
-                close, 
-                daily_return, 
-                rsi_14,
-                ROW_NUMBER() OVER (PARTITION BY ticker ORDER BY trade_date DESC) as rn
-            FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
-            WHERE trade_date >= DATE_SUB(CURRENT_DATE(), INTERVAL @days DAY)
-            AND ticker IN UNNEST(@tickers)
-        ),
-        history_agg AS (
-            SELECT
-                ticker,
-                ARRAY_AGG(STRUCT(CAST(trade_date AS STRING) as date, close) ORDER BY trade_date ASC) as history
-            FROM ranked_data
-            WHERE rn <= 30
-            GROUP BY ticker
-        )
-        SELECT 
-            l.ticker, l.trade_date, l.close, l.daily_return, l.rsi_14,
-            h.history
-        FROM ranked_data l
-        LEFT JOIN history_agg h ON l.ticker = h.ticker
-        WHERE l.rn = 1
-    """
-    job_config = bigquery.QueryJobConfig(
-        query_parameters=[
-            bigquery.ScalarQueryParameter("days", "INT64", days),
-            bigquery.ArrayQueryParameter("tickers", "STRING", tickers),
-        ]
-    )
-    df = bq_client.query(query, job_config=job_config).to_dataframe()
-    
-    if df.empty:
-         return {"tickers": []}
-
-    # Clean history struct
-    if 'history' in df.columns:
-        def clean_history(h):
-            if h is None: return []
-            return [{"date": x['date'], "close": x['close']} for x in h]
-        df['history'] = df['history'].apply(clean_history)
-
-    # Sort by defined order
-    records = df.to_dict(orient="records")
     try:
-        ticker_order = {t: i for i, t in enumerate(tickers)}
-        records.sort(key=lambda x: ticker_order.get(x['ticker'], 999))
-    except Exception:
-        pass
-    
-    return {"tickers": records}
+        query = f"""
+            WITH ranked_data AS (
+                SELECT 
+                    ticker, 
+                    trade_date, 
+                    close, 
+                    daily_return, 
+                    rsi_14,
+                    ROW_NUMBER() OVER (PARTITION BY ticker ORDER BY trade_date DESC) as rn
+                FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
+                WHERE trade_date >= DATE_SUB(CURRENT_DATE(), INTERVAL @days DAY)
+                AND ticker IN UNNEST(@tickers)
+            ),
+            history_agg AS (
+                SELECT
+                    ticker,
+                    ARRAY_AGG(STRUCT(CAST(trade_date AS STRING) as date, close) ORDER BY trade_date ASC) as history
+                FROM ranked_data
+                WHERE rn <= 30
+                GROUP BY ticker
+            )
+            SELECT 
+                l.ticker, l.trade_date, l.close, l.daily_return, l.rsi_14,
+                h.history
+            FROM ranked_data l
+            LEFT JOIN history_agg h ON l.ticker = h.ticker
+            WHERE l.rn = 1
+        """
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("days", "INT64", days),
+                bigquery.ArrayQueryParameter("tickers", "STRING", tickers),
+            ]
+        )
+        df = bq_client.query(query, job_config=job_config).to_dataframe()
+        
+        if df.empty:
+             return {"tickers": []}
+
+        # Clean history struct
+        if 'history' in df.columns:
+            def clean_history(h):
+                if h is None: return []
+                return [{"date": x['date'], "close": x['close']} for x in h]
+            df['history'] = df['history'].apply(clean_history)
+
+        # Sort by defined order
+        # Robust NaN handling: force object type so None persists
+        records = df.astype(object).where(pd.notnull(df), None).to_dict(orient="records")
+        try:
+            ticker_order = {t: i for i, t in enumerate(tickers)}
+            records.sort(key=lambda x: ticker_order.get(x['ticker'], 999))
+        except Exception:
+            pass
+        
+        return {"tickers": records}
+    except Exception as e:
+        logger.error(f"Dashboard error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/")
 def root():
@@ -804,8 +809,8 @@ def get_economic_indicators(days: int = 365):
         
         df["trend"] = df["change_pct"].apply(get_trend)
         
-        # Convert NaN to None
-        df = df.replace({pd.NA: None, float('nan'): None})
+        # Convert NaN to None robustly (force object type)
+        df = df.astype(object).where(pd.notnull(df), None)
         
         return {
             "indicators": df.to_dict(orient="records"),
