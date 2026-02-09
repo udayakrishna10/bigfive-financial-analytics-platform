@@ -54,7 +54,7 @@ I shifted from GKE and Cloud Composer to a Serverless model to prove that enterp
 | **Data Platform** | Google BigQuery, Google Cloud Storage (GCS) |
 | **Backend API** | Python, FastAPI, Pandas, NumPy |
 | **AI & Intelligence** | OpenAI GPT-4o-mini, News Sentiment Engineering |
-| **External APIs** | **FRED (Macro Docs)**, **CoinGecko (Crypto)**, **NewsAPI**, **yFinance** |
+| **External APIs** | FRED (Macro Docs), CoinGecko (Crypto), NewsAPI, yFinance |
 | **Quant Analysis** | RSI (14-day), EMA, MACD, Bollinger Bands |
 
 
