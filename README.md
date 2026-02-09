@@ -107,6 +107,8 @@ The platform uses **GitHub Actions** for automated deployment. On every push to 
     *   **Bronze Ingestion**: Runs daily at 4:15 PM ET via Cloud Scheduler.
     *   **Silver Transformation**: Runs daily at 4:30 PM ET.
     *   **Gold Aggregation**: Runs daily at 4:45 PM ET.
+    *   **Crypto Ingestion**: Runs daily at 7:00 PM ET.
+    *   **FRED Economic Data**: Runs weekly at 6:00 AM ET Monday.
 
 ## **Udaya Krishna Karanam**  
 
