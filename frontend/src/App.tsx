@@ -86,7 +86,7 @@ export default function App() {
       {/* Global Fixed Footer */}
       <footer className="fixed bottom-0 w-full py-3 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-t border-gray-200 dark:border-white/5 flex flex-col items-center justify-center shrink-0 z-50">
         <p className="text-sm text-gray-600 dark:text-slate-400 font-bold tracking-wide flex items-center gap-2">
-          Designed & Built by <span className="text-blue-400">Udaya Krishna Karanam</span>
+          Designed & Built by <a href="https://www.linkedin.com/in/udayakrishnakaranam10" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors underline-offset-4 hover:underline">Udaya Krishna Karanam</a>
         </p>
       </footer>
     </div >
