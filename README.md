@@ -4,7 +4,7 @@
 ### Live @ https://bigfivebyuk.netlify.app
 
 ## Project Summary
-An end-to-end data engineering and analytics platform providing real-time market intelligence for the "Big Five" tech giants. The project focuses on high-integrity data pipelines and cost-optimized cloud architecture, transitioning from a heavy Kubernetes (GKE) environment to a 97.5% cost-efficient Serverless stack.
+An end-to-end data engineering and analytics platform providing real-time market intelligence for the "Big Five" tech giants. The project focuses on high-integrity data pipelines and cost-optimized cloud architecture, transitioning from a heavy Kubernetes (GKE) environment to a 98.5% cost-efficient Serverless stack.
 
 ### Key Engineering Impact
 
@@ -25,14 +25,14 @@ The project evolved through two distinct architectural phases to achieve optimal
 | **Compute** | GKE Autopilot (Always-On) | Cloud Run Jobs (Scale-to-Zero) | Serverless + GenAI Analysis |
 | **Orchestration** | Apache Airflow (Cloud Composer) | Native Cloud Scheduler | Real-time Cross-Market Sync |
 | **Data Strategy** | Monolithic BigQuery Storage | BigQuery + GCS "Intelligence Sink" | Cross-Asset Global Integration |
-| **Operational Cost** | High (~$40-$60/month idle fees) | Scale-to-Zero Efficiency | Usage-Based Costing |
+| **Operational Cost** | High (~$70/month idle fees) | Scale-to-Zero Efficiency | Usage-Based Costing |
 | **CI/CD Pipeline** | Manual / Cloud Build | GitHub Actions (Automated) | Pull Request & Verified Deploy |
 | **Maintenance** | Cluster & Node Management | Zero-Ops (Managed Serverless) | Automated Data Quality Logic |
 | **Best Use Case** | Continuous Streaming / High Traffic | Daily Post-Market Batch Processing | Automated Insights |
 
 
 ### Impact Metrics
-*   **97.5% Cost Reduction**: From ~$40-$60/mo (GKE) to ~$1/mo (Cloud Run).
+*   **98.5% Cost Reduction**: From ~$70/mo (GKE) to ~$1/mo (Cloud Run).
 *   **Zero-Ops Managed**: Fully automated, decoupled serverless architecture.
 
 ## Architecture: The "Low-Cost" Serverless Evolution
