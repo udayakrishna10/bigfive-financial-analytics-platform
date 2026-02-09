@@ -1,6 +1,8 @@
 # BigFive: Scalable Financial Intelligence Platform
 **Nov 2026 – Feb 2026**
 
+### Live @ https://bigfivebyuk.netlify.app
+
 ## Project Summary
 An end-to-end data engineering and analytics platform providing real-time market intelligence for the "Big Five" tech giants. The project focuses on high-integrity data pipelines and cost-optimized cloud architecture, transitioning from a heavy Kubernetes (GKE) environment to a 97.5% cost-efficient Serverless stack.
 
@@ -12,8 +14,6 @@ An end-to-end data engineering and analytics platform providing real-time market
 * **Intelligence Sink (GCS)**: Implemented a cost-effective archival strategy for unstructured data by decoupling AI-generated summaries into timestamped .txt files in Google Cloud Storage, keeping the BigQuery warehouse lean and performant.
 * **Signal Processing**: Engineered an on-demand News API integration with a reputation-based filter to ingest high-signal financial reporting from tier-1 sources (CNBC, Bloomberg, WSJ), optimizing LLM (GPT-4o-mini) processing efficiency.
 * **Governance**: Established a Global Rate Limiter and utilized GCP Secret Manager to ensure API security and strict budgetary control.
-
-### Live @ https://bigfivebyuk.netlify.app
 
 
 ## Evolution of Architecture
