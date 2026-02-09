@@ -22,7 +22,7 @@ The project evolved through two distinct architectural phases to achieve optimal
 
 | Feature | Phase 1: Enterprise Native (GKE) | Phase 2: Serverless Optimized | Phase 3: Global Intelligence |
 | :--- | :--- | :--- | :--- |
-| **Compute** | GKE Autopilot (Always-On) | Cloud Run Jobs (Scale-to-Zero) | Serverless + AI Agentic (GPT-4) |
+| **Compute** | GKE Autopilot (Always-On) | Cloud Run Jobs (Scale-to-Zero) | Serverless + GenAI Analysis (GPT-4) |
 | **Orchestration** | Apache Airflow (Cloud Composer) | Native Cloud Scheduler | Real-time Tech & Crypto Sync |
 | **Data Strategy** | Monolithic BigQuery Storage | BigQuery + GCS "Intelligence Sink" | Global FRED Macro Integration |
 | **Operational Cost** | High (~$100+/month idle fees) | Minimal (99% Reduction) | Optimal ROI (Predictive Analytics) |

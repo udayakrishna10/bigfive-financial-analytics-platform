@@ -70,7 +70,7 @@ export const ArchitectureView = () => {
                                 </td>
                                 <td className="p-3 text-blue-700 dark:text-blue-200 font-bold bg-blue-500/5 relative">
                                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-400 to-blue-600" />
-                                    Serverless + Agentic AI
+                                    Serverless + GenAI Analysis
                                 </td>
                             </tr>
                             <tr className="hover:bg-blue-50/50 dark:hover:bg-white/5 transition-all duration-200 group">
