@@ -557,80 +557,94 @@ def chart_data(ticker: str = "AAPL"):
         points.append(record)
 
     return {"ticker": ticker.upper(), "points": points}
-
 @app.get("/news-sentiment")
 def news_sentiment(ticker: str = "AAPL", limit: int = 10):
     check_daily_limit()
     symbol = ticker.upper()
+    
+    # For ALL, fetch news for each BigFive company individually to ensure balanced coverage
     if symbol == "ALL":
-        # Group query for ONLY BigFive companies
-        companies = [TICKER_TO_COMPANY[ticker] for ticker in BIG_FIVE_TICKERS]
-        joined_companies = " OR ".join([f'"{c}"' for c in companies])
-        q_param = f'({joined_companies}) AND (stock OR earnings OR analyst)'
+        filtered = []
+        articles_per_company = 2  # Get 2 articles per company for balance
+        
+        for t_code in BIG_FIVE_TICKERS:
+            company = TICKER_TO_COMPANY[t_code]
+            q_param = f'"{company}" AND (stock OR earnings OR analyst OR revenue OR profit)'
+            
+            three_days_ago = (datetime.now() - pd.Timedelta(days=7)).strftime('%Y-%m-%d')
+            params = {
+                "q": q_param,
+                "apiKey": NEWS_API_KEY,
+                "domains": FINANCE_DOMAINS,
+                "pageSize": articles_per_company * 3,  # Fetch extra to filter
+                "sortBy": "publishedAt",
+                "from": three_days_ago
+            }
+            
+            try:
+                resp = requests.get("https://newsapi.org/v2/everything", params=params)
+                resp.raise_for_status()
+                articles = resp.json().get("articles", [])
+            except Exception as e:
+                logger.error(f"NewsAPI error for {company}: {e}")
+                continue
+            
+            # Filter articles for this company
+            company_articles = []
+            for a in articles:
+                url = a.get("url")
+                if not url or "removed.com" in url:
+                    continue
+                
+                text = f"{a.get('title') or ''} {a.get('description') or ''}".lower()
+                
+                # Filter out crypto
+                if any(crypto_word in text for crypto_word in CRYPTO_KEYWORDS):
+                    continue
+                
+                # Ensure it's stock-related
+                if any(k in text for k in STOCK_KEYWORDS):
+                    company_articles.append({
+                        "title": a["title"],
+                        "source": a["source"]["name"],
+                        "url": a["url"],
+                        "publishedAt": a.get("publishedAt"),
+                        "ticker": company.upper()
+                    })
+                
+                if len(company_articles) >= articles_per_company:
+                    break
+            
+            filtered.extend(company_articles)
+        
+        # Sort all articles by date
+        filtered.sort(key=lambda x: x.get("publishedAt", ""), reverse=True)
+        
     else:
+        # Single company query (existing logic)
         company = TICKER_TO_COMPANY.get(symbol, symbol)
         q_param = f'"{company}" AND (stock OR earnings OR analyst)'
 
-    three_days_ago = (datetime.now() - pd.Timedelta(days=7)).strftime('%Y-%m-%d')
-    params = {
-        "q": q_param,
-        "apiKey": NEWS_API_KEY,
-        "domains": FINANCE_DOMAINS,
-        "pageSize": limit * 5,
-        "sortBy": "publishedAt",
-        "from": three_days_ago
-    }
+        three_days_ago = (datetime.now() - pd.Timedelta(days=7)).strftime('%Y-%m-%d')
+        params = {
+            "q": q_param,
+            "apiKey": NEWS_API_KEY,
+            "domains": FINANCE_DOMAINS,
+            "pageSize": limit * 5,
+            "sortBy": "publishedAt",
+            "from": three_days_ago
+        }
 
-    try:
-        resp = requests.get("https://newsapi.org/v2/everything", params=params)
-        resp.raise_for_status()
-        articles = resp.json().get("articles", [])
-    except Exception as e:
-        logger.error(f"NewsAPI error: {e}")
-        articles = []
+        try:
+            resp = requests.get("https://newsapi.org/v2/everything", params=params)
+            resp.raise_for_status()
+            articles = resp.json().get("articles", [])
+        except Exception as e:
+            logger.error(f"NewsAPI error: {e}")
+            articles = []
 
-    filtered = []
-    for a in articles:
-        # For ALL, we trust the query more; for specific ticker, ensure company name is in text
-        # Search in BOTH title and description for company names and keywords
-        text = f"{a.get('title') or ''} {a.get('description') or ''}".lower()
-        
-        detected_company = symbol if symbol != "ALL" else "Market"
-        if symbol == "ALL":
-            # Infer which company is talked about - ONLY BigFive stocks
-            for t_code in BIG_FIVE_TICKERS:  # Only check BigFive, not crypto
-                 t_name = TICKER_TO_COMPANY[t_code]
-                 # Use regex for whole word matching (avoids 'Meta' matching 'metal')
-                 pattern = rf"\b({re.escape(t_name.lower())}|{re.escape(t_code.lower())})\b"
-                 if re.search(pattern, text):
-                     detected_company = t_name.upper()
-                     break
-        else:
-             detected_company = TICKER_TO_COMPANY.get(symbol, symbol).upper()
-
-        if symbol == "ALL":
-            # STRICT FILTER: If we didn't match a specific FAANG ticker, SKIP IT.
-            if detected_company == "Market":
-                continue
-
-            # Skip broken links
-            url = a.get("url")
-            if not url or "removed.com" in url:
-                continue
-
-            # Filter out crypto-related articles from ALL feed
-            if any(crypto_word in text for crypto_word in CRYPTO_KEYWORDS):
-                continue
-
-            if any(k in text for k in STOCK_KEYWORDS):
-                 filtered.append({
-                    "title": a["title"],
-                    "source": a["source"]["name"],
-                    "url": a["url"],
-                    "publishedAt": a.get("publishedAt"),
-                    "ticker": detected_company
-                })
-        else:
+        filtered = []
+        for a in articles:
             # Skip broken links
             url = a.get("url")
             if not url or "removed.com" in url:
@@ -642,13 +656,13 @@ def news_sentiment(ticker: str = "AAPL", limit: int = 10):
                     "source": a["source"]["name"],
                     "url": a["url"],
                     "publishedAt": a.get("publishedAt"),
-                    "ticker": detected_company
+                    "ticker": TICKER_TO_COMPANY.get(symbol, symbol).upper()
                 })
-        if len(filtered) >= limit:
-            break
-            
-    # Explicitly sort by date descending to be safe
-    filtered.sort(key=lambda x: x.get("publishedAt", ""), reverse=True)
+            if len(filtered) >= limit:
+                break
+                
+        # Sort by date
+        filtered.sort(key=lambda x: x.get("publishedAt", ""), reverse=True)
 
     headlines = "\n".join([f"- {title}" for title in [a['title'] for a in filtered]])
     
