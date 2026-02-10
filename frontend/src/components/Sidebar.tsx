@@ -22,7 +22,7 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'economic', label: 'Economic Data', icon: TrendingUp },
     { id: 'insights', label: 'AI Insights', icon: Sparkles },
-    { id: 'news', label: 'Sentiment', icon: Newspaper },
+    { id: 'news', label: 'Stock News', icon: Newspaper },
     { id: 'crypto', label: 'Crypto News', icon: Bitcoin },
     { id: 'architecture', label: 'Architecture', icon: Activity },
     { id: 'health', label: 'System Health', icon: Server },
