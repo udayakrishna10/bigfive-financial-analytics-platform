@@ -563,8 +563,8 @@ def news_sentiment(ticker: str = "AAPL", limit: int = 10):
     check_daily_limit()
     symbol = ticker.upper()
     if symbol == "ALL":
-        # Group query for all FAANG companies
-        companies = list(TICKER_TO_COMPANY.values())
+        # Group query for ONLY BigFive companies
+        companies = [TICKER_TO_COMPANY[ticker] for ticker in BIG_FIVE_TICKERS]
         joined_companies = " OR ".join([f'"{c}"' for c in companies])
         q_param = f'({joined_companies}) AND (stock OR earnings OR analyst)'
     else:
