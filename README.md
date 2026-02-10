@@ -1,4 +1,4 @@
-# BigFive: Scalable Financial Intelligence Platform
+# BigFive: Scalable Financial Analytics Platform
 **Nov 2025 – Feb 2026**
 
 ### Live @ https://bigfivebyuk.netlify.app
