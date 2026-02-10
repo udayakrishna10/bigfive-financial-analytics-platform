@@ -4,6 +4,7 @@ import {
   BarChart3,
   Sparkles,
   Newspaper,
+  Bitcoin,
   Activity,
   Server,
   TrendingUp
@@ -22,6 +23,7 @@ export const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
     { id: 'economic', label: 'Economic Data', icon: TrendingUp },
     { id: 'insights', label: 'AI Insights', icon: Sparkles },
     { id: 'news', label: 'Sentiment', icon: Newspaper },
+    { id: 'crypto', label: 'Crypto News', icon: Bitcoin },
     { id: 'architecture', label: 'Architecture', icon: Activity },
     { id: 'health', label: 'System Health', icon: Server },
   ];

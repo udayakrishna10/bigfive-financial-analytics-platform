@@ -5,6 +5,7 @@ import { Dashboard } from './components/Dashboard';
 import { ChartSection } from './components/ChartSection';
 import { AIChat } from './components/AIChat.tsx';
 import { SentimentFeed } from './components/SentimentFeed';
+import { CryptoNews } from './components/CryptoNews';
 import { HealthView } from './components/HealthView';
 import { ArchitectureView } from './components/ArchitectureView';
 import { EconomicIndicators } from './components/EconomicIndicators';
@@ -27,6 +28,7 @@ export default function App() {
       case 'analytics': return <ChartSection ticker={selectedTicker} onTickerChange={setSelectedTicker} />;
       case 'insights': return <AIChat />;
       case 'news': return <SentimentFeed />;
+      case 'crypto': return <CryptoNews />;
       case 'economic': return <EconomicIndicators />;
       case 'architecture': return <ArchitectureView />;
       case 'health': return <HealthView />;

@@ -38,6 +38,15 @@ export const api = {
       return res.json();
     }),
 
+  getCryptoNews: () =>
+    fetch(`${API_CONFIG.BASE_URL}/crypto-news`).then(async res => {
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || "Failed to fetch crypto news");
+      }
+      return res.json();
+    }),
+
   checkHealth: () =>
     fetch(`${API_CONFIG.BASE_URL}/health`).then(res => res.json()),
 };

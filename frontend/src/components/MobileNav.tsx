@@ -4,6 +4,7 @@ import {
     BarChart3,
     Sparkles,
     Newspaper,
+    Bitcoin,
     TrendingUp,
     Activity,
     Server
@@ -21,6 +22,7 @@ export const MobileNav = ({ activeTab, setActiveTab }: MobileNavProps) => {
         { id: 'economic', icon: TrendingUp, label: 'Econ' },
         { id: 'insights', icon: Sparkles, label: 'AI' },
         { id: 'news', icon: Newspaper, label: 'News' },
+        { id: 'crypto', icon: Bitcoin, label: 'Crypto' },
         { id: 'architecture', icon: Activity, label: 'Arch' },
         { id: 'health', icon: Server, label: 'Health' },
     ];
