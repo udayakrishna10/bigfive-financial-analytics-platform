@@ -597,8 +597,9 @@ def news_sentiment(ticker: str = "AAPL", limit: int = 10):
         
         detected_company = symbol if symbol != "ALL" else "Market"
         if symbol == "ALL":
-            # Infer which company is talked about
-            for t_code, t_name in TICKER_TO_COMPANY.items():
+            # Infer which company is talked about - ONLY BigFive stocks
+            for t_code in BIG_FIVE_TICKERS:  # Only check BigFive, not crypto
+                 t_name = TICKER_TO_COMPANY[t_code]
                  # Use regex for whole word matching (avoids 'Meta' matching 'metal')
                  pattern = rf"\b({re.escape(t_name.lower())}|{re.escape(t_code.lower())})\b"
                  if re.search(pattern, text):
@@ -669,6 +670,75 @@ def news_sentiment(ticker: str = "AAPL", limit: int = 10):
 
     response = {"ticker": symbol, "articles": filtered, "sentiment_summary": summary}
     set_news_cache(f"{symbol}-sentiment", response)
+    return response
+
+@app.get("/crypto-news")
+def crypto_news(limit: int = 10):
+    """Get cryptocurrency news with AI sentiment for Bitcoin and Ethereum"""
+    check_daily_limit()
+    
+    # Check cache
+    cached = cached_news("CRYPTO-news")
+    if cached:
+        return cached
+    
+    # Fetch crypto news from NewsAPI
+    params = {
+        "q": "(Bitcoin OR Ethereum OR BTC OR ETH) AND (price OR market OR trading)",
+        "apiKey": NEWS_API_KEY,
+        "domains": "cointelegraph.com,coindesk.com,decrypt.co,cnbc.com,bloomberg.com",
+        "pageSize": limit * 2,
+        "sortBy": "publishedAt",
+        "from": (datetime.now() - pd.Timedelta(days=3)).strftime('%Y-%m-%d')
+    }
+    
+    try:
+        resp = requests.get("https://newsapi.org/v2/everything", params=params)
+        resp.raise_for_status()
+        articles = resp.json().get("articles", [])
+    except Exception as e:
+        logger.error(f"NewsAPI crypto error: {e}")
+        articles = []
+    
+    # Filter and format
+    filtered = []
+    for a in articles:
+        url = a.get("url")
+        if not url or "removed.com" in url:
+            continue
+        
+        filtered.append({
+            "title": a["title"],
+            "source": a["source"]["name"],
+            "url": a["url"],
+            "publishedAt": a.get("publishedAt")
+        })
+        
+        if len(filtered) >= limit:
+            break
+    
+    # Generate AI sentiment
+    headlines = "\n".join([f"- {a['title']}" for a in filtered])
+    
+    if openai_client and headlines:
+        try:
+            completion = openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[{
+                    "role": "user",
+                    "content": f"Summarize cryptocurrency market sentiment from these headlines:\n{headlines}\n\nProvide a single paragraph."
+                }],
+                temperature=0.4
+            )
+            sentiment = completion.choices[0].message.content.strip().replace("*", "")
+        except Exception as e:
+            logger.error(f"OpenAI crypto sentiment error: {e}")
+            sentiment = "Sentiment analysis unavailable"
+    else:
+        sentiment = "No recent crypto news available"
+    
+    response = {"articles": filtered, "sentiment_summary": sentiment}
+    set_news_cache("CRYPTO-news", response)
     return response
 
 @app.get("/big-five-dashboard")
