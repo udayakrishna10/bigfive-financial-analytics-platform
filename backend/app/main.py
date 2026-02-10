@@ -617,6 +617,10 @@ def news_sentiment(ticker: str = "AAPL", limit: int = 10):
             if not url or "removed.com" in url:
                 continue
 
+            # Filter out crypto-related articles from ALL feed
+            if any(crypto_word in text for crypto_word in CRYPTO_KEYWORDS):
+                continue
+
             if any(k in text for k in STOCK_KEYWORDS):
                  filtered.append({
                     "title": a["title"],
