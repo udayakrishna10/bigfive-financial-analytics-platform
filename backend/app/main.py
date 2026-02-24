@@ -1157,7 +1157,18 @@ async def realtime_stream():
             broadcaster.clients.remove(queue)
             logger.info("SSE client disconnected from shared stream")
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    headers = {
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "X-Accel-Buffering": "no", # Prevents Nginx/Cloudflare buffering
+        "Content-Type": "text/event-stream"
+    }
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers=headers
+    )
 
 @app.get("/intraday-history")
 def get_intraday_history(ticker: str = Query(..., description="Ticker to fetch history for")):
