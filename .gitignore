@@ -225,3 +225,8 @@ google-cloud-sdk/
 # Local Netlify folder
 .netlify
 key.json
+
+# Scratch / editor artifacts
+*.snippet
+*.header_fix
+*.code-workspace
