@@ -154,7 +154,7 @@ export const Dashboard = ({ onTickerSelect }: DashboardProps) => {
       <div className="flex items-center justify-center gap-2 mt-auto flex-shrink-0 pt-2">
         <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
         <p className="text-[10px] text-gray-600 dark:text-slate-500 font-medium">
-          Market Data refreshes weekdays at 5:00 PM ET
+          Market Data refreshes weekdays at 8:00 PM ET
         </p>
       </div>
     </div>
