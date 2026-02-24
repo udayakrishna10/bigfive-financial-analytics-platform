@@ -9,6 +9,7 @@ import { CryptoNews } from './components/CryptoNews';
 import { HealthView } from './components/HealthView';
 import { ArchitectureView } from './components/ArchitectureView';
 import { EconomicIndicators } from './components/EconomicIndicators';
+import { AICouncil } from './components/AICouncil';
 import { ThemeToggle } from './components/ThemeToggle';
 import { Toaster } from 'sonner';
 
@@ -29,6 +30,7 @@ export default function App() {
       case 'dashboard': return <Dashboard onTickerSelect={handleTickerSelect} />;
       case 'analytics': return <ChartSection ticker={selectedTicker} onTickerChange={setSelectedTicker} />;
       case 'insights': return <AIChat />;
+      case 'council': return <AICouncil />;
       case 'news': return <SentimentFeed />;
       case 'crypto': return <CryptoNews />;
       case 'economic': return <EconomicIndicators />;

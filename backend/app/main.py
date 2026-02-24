@@ -565,6 +565,279 @@ ANALYSIS INSTRUCTIONS:
     archive_to_gcs(detected_ticker, question, answer)
     return {"answer": answer}
 
+# ===========================
+# AI COUNCIL
+# ===========================
+
+class CouncilRequest(BaseModel):
+    ticker: str
+
+# 5-minute per-ticker cache
+_council_cache: dict = {}
+COUNCIL_CACHE_TTL = 300  # seconds
+
+COUNCIL_AGENTS = [
+    {
+        "id": "bull",
+        "name": "Bull Analyst",
+        "icon": "🐂",
+        "specialty": "Growth & Upside Momentum",
+        "color": "emerald",
+        "system": (
+            "You are an aggressive bull analyst. Your job is to find EVERY bullish signal in the data. "
+            "Look for: RSI recovering from oversold, MACD bullish crossovers, price above MA20/MA50, "
+            "volume surges, positive price momentum. Be optimistic but back every claim with specific numbers. "
+            "Do NOT use markdown bold (**text**). Be concise — max 3 sentences of reasoning."
+        ),
+        "data": "technical",
+    },
+    {
+        "id": "bear",
+        "name": "Bear Analyst",
+        "icon": "🐻",
+        "specialty": "Risk & Downside Exposure",
+        "color": "rose",
+        "system": (
+            "You are a skeptical bear analyst. Your job is to find EVERY risk and warning signal. "
+            "Look for: overbought RSI (>70), MACD bearish divergence, price below key MAs, "
+            "high VIX, rising yields hurting valuations, negative news. Be cautious but cite specific numbers. "
+            "Do NOT use markdown bold (**text**). Be concise — max 3 sentences of reasoning."
+        ),
+        "data": "technical_and_macro",
+    },
+    {
+        "id": "technical",
+        "name": "Technical Oracle",
+        "icon": "📊",
+        "specialty": "Pure Chart Technicals",
+        "color": "blue",
+        "system": (
+            "You are a pure technical analyst. Analyze ONLY chart signals — RSI, MACD, Bollinger Bands, "
+            "MA crossovers, volume patterns. Ignore all macro and news. Be precise with exact values. "
+            "Do NOT use markdown bold (**text**). Be concise — max 3 sentences of reasoning."
+        ),
+        "data": "technical",
+    },
+    {
+        "id": "macro",
+        "name": "Macro Strategist",
+        "icon": "🌍",
+        "specialty": "Economic Big Picture",
+        "color": "violet",
+        "system": (
+            "You are a top-down macro strategist. Analyze ONLY macroeconomic indicators — VIX, 10Y Treasury yield, "
+            "CPI inflation, unemployment rate, GDP growth. Assess whether the macro environment supports or hurts equities. "
+            "Do NOT use markdown bold (**text**). Be concise — max 3 sentences of reasoning."
+        ),
+        "data": "macro",
+    },
+    {
+        "id": "sentiment",
+        "name": "News Sentinel",
+        "icon": "📰",
+        "specialty": "News & Market Sentiment",
+        "color": "amber",
+        "system": (
+            "You are a news sentiment analyst. Analyze ONLY the recent headlines provided. "
+            "Assess whether the news tone is positive, negative, or mixed for the stock/crypto. "
+            "Reference specific headline titles. Do NOT use markdown bold (**text**). Be concise — max 3 sentences."
+        ),
+        "data": "news",
+    },
+]
+
+CHAIRMAN_SYSTEM = (
+    "You are the Chairman of an elite financial AI council. You have just received verdicts from 5 specialist agents. "
+    "Your job is to synthesize their deliberations into a final ruling. "
+    "Output ONLY valid JSON (no markdown, no code fences) with this exact structure: "
+    '{"verdict": "BULLISH|BEARISH|NEUTRAL", "confidence": <0-100 integer>, '
+    '"action": "ACCUMULATE|HOLD|REDUCE|AVOID", "timeframe": "<e.g. 2-4 weeks>", '
+    '"synthesis": "<3-4 sentence summary of the council debate and your reasoning>"}'
+)
+
+def _call_agent_sync(system_prompt: str, user_prompt: str) -> str:
+    """Synchronous OpenAI call for use in thread pool."""
+    completion = openai_client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        temperature=0.6,
+        max_tokens=300,
+    )
+    return completion.choices[0].message.content.strip()
+
+def _parse_agent_response(raw: str, agent: dict) -> dict:
+    """Parse a free-text agent response into structured fields."""
+    text = raw.strip()
+    # Detect verdict keyword
+    verdict = "NEUTRAL"
+    text_upper = text.upper()
+    if any(w in text_upper for w in ["BULLISH", "BUY", "POSITIVE", "UPSIDE", "ACCUMULATE"]):
+        verdict = "BULLISH"
+    elif any(w in text_upper for w in ["BEARISH", "SELL", "NEGATIVE", "DOWNSIDE", "AVOID", "REDUCE"]):
+        verdict = "BEARISH"
+
+    # Confidence: scan for percent mentions
+    import re as _re
+    conf_match = _re.search(r'(\d{1,3})\s*%', text)
+    confidence = int(conf_match.group(1)) if conf_match else (70 if verdict == "NEUTRAL" else 65)
+    confidence = max(0, min(100, confidence))
+
+    # Key signals: first sentence fragments
+    sentences = [s.strip() for s in text.split('.') if len(s.strip()) > 10]
+    key_signals = sentences[:3] if sentences else [text[:80]]
+
+    return {
+        "agent": agent["name"],
+        "icon": agent["icon"],
+        "specialty": agent["specialty"],
+        "color": agent["color"],
+        "verdict": verdict,
+        "confidence": confidence,
+        "reasoning": text,
+        "key_signals": key_signals,
+    }
+
+@app.post("/ai-council")
+async def ai_council(request: CouncilRequest):
+    """Run 5 specialist AI agents in parallel on a ticker, then synthesize via Chairman."""
+    check_daily_limit()
+
+    ticker = request.ticker.upper()
+    if ticker not in ALL_TICKERS:
+        raise HTTPException(status_code=400, detail=f"Unsupported ticker: {ticker}")
+
+    if not openai_client:
+        raise HTTPException(status_code=503, detail="AI Council requires OPENAI_API_KEY.")
+
+    # Check cache
+    cached = _council_cache.get(ticker)
+    if cached and time.time() - cached["ts"] < COUNCIL_CACHE_TTL:
+        logger.info(f"Council cache hit for {ticker}")
+        return cached["data"]
+
+    # ── Fetch data slices ──────────────────────────────────────────────
+    # Technical: last 30 days for this ticker
+    tech_query = f"""
+        SELECT trade_date, close, daily_return * 100 AS daily_return,
+               rsi_14, macd_line, macd_signal, macd_histogram,
+               ma_20, ma_50, bb_upper, bb_middle, bb_lower, bb_width, volume_ratio
+        FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
+        WHERE ticker = @ticker
+          AND trade_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+        ORDER BY trade_date DESC LIMIT 30
+    """
+    macro_query = f"""
+        SELECT series_id, series_name, observation_date, value
+        FROM `{PROJECT_ID}.{DATASET}.fred_data`
+        WHERE observation_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 35 DAY)
+        ORDER BY series_id, observation_date DESC LIMIT 60
+    """
+    job_cfg = bigquery.QueryJobConfig(
+        query_parameters=[bigquery.ScalarQueryParameter("ticker", "STRING", ticker)]
+    )
+    try:
+        tech_df = bq_client.query(tech_query, job_config=job_cfg).to_dataframe()
+        macro_df = bq_client.query(macro_query).to_dataframe()
+    except Exception as e:
+        logger.error(f"Council BQ fetch failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch market data.")
+
+    tech_str = tech_df.to_string(index=False) if not tech_df.empty else "No technical data available."
+    macro_str = macro_df.to_string(index=False) if not macro_df.empty else "No macro data available."
+
+    # News headlines
+    news_str = "No recent headlines available."
+    try:
+        news_res = news_sentiment(ticker=ticker, limit=5)
+        headlines = [f"- {a['title']} ({a['source']})" for a in (news_res.get("articles") or [])]
+        if headlines:
+            news_str = "\n".join(headlines)
+    except Exception:
+        pass
+
+    # ── Build per-agent user prompts ────────────────────────────────────
+    def make_prompt(agent: dict) -> str:
+        company = TICKER_TO_COMPANY.get(ticker, ticker)
+        base = f"Ticker: {ticker} ({company}). Today: {date.today()}.\n\n"
+        data_type = agent["data"]
+        if data_type == "technical":
+            return base + f"Technical Data (last 30 days):\n{tech_str}\n\nProvide your verdict and reasoning."
+        elif data_type == "macro":
+            return base + f"Macro Indicators:\n{macro_str}\n\nProvide your verdict on the macro environment for {ticker}."
+        elif data_type == "news":
+            return base + f"Recent Headlines:\n{news_str}\n\nProvide your sentiment verdict."
+        else:  # technical_and_macro
+            return base + f"Technical Data:\n{tech_str}\n\nMacro Indicators:\n{macro_str}\n\nProvide your risk assessment."
+
+    # ── Run all 5 agents in parallel using thread pool ──────────────────
+    loop = asyncio.get_event_loop()
+    agent_tasks = [
+        loop.run_in_executor(None, _call_agent_sync, agent["system"], make_prompt(agent))
+        for agent in COUNCIL_AGENTS
+    ]
+    raw_responses = await asyncio.gather(*agent_tasks, return_exceptions=True)
+
+    council_results = []
+    council_summary_for_chairman = []
+    for agent, raw in zip(COUNCIL_AGENTS, raw_responses):
+        if isinstance(raw, Exception):
+            logger.error(f"Agent {agent['name']} failed: {raw}")
+            result = {
+                "agent": agent["name"], "icon": agent["icon"],
+                "specialty": agent["specialty"], "color": agent["color"],
+                "verdict": "NEUTRAL", "confidence": 50,
+                "reasoning": "Agent unavailable.", "key_signals": []
+            }
+        else:
+            result = _parse_agent_response(raw, agent)
+        council_results.append(result)
+        council_summary_for_chairman.append(
+            f"{agent['icon']} {agent['name']} ({agent['specialty']}): {result['verdict']} "
+            f"[{result['confidence']}% confidence] — {result['reasoning'][:200]}"
+        )
+
+    # ── Chairman synthesizes ────────────────────────────────────────────
+    chairman_prompt = (
+        f"You are chairing a council analyzing {ticker} ({TICKER_TO_COMPANY.get(ticker, ticker)}) on {date.today()}.\n\n"
+        "Council verdicts:\n" + "\n\n".join(council_summary_for_chairman) +
+        "\n\nOutput your synthesis as valid JSON only."
+    )
+    try:
+        chairman_raw = await loop.run_in_executor(
+            None, _call_agent_sync, CHAIRMAN_SYSTEM, chairman_prompt
+        )
+        import json as _json
+        # Strip any accidental markdown fences
+        clean = chairman_raw.strip().strip("```json").strip("```").strip()
+        chairman_data = _json.loads(clean)
+        # Validate required keys
+        for k in ["verdict", "confidence", "action", "timeframe", "synthesis"]:
+            if k not in chairman_data:
+                raise ValueError(f"Missing key: {k}")
+    except Exception as e:
+        logger.error(f"Chairman parse failed: {e} | raw: {chairman_raw[:200] if 'chairman_raw' in dir() else 'N/A'}")
+        chairman_data = {
+            "verdict": "NEUTRAL",
+            "confidence": 50,
+            "action": "HOLD",
+            "timeframe": "N/A",
+            "synthesis": "The council was unable to reach a conclusive verdict. Please retry."
+        }
+
+    response = {
+        "ticker": ticker,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "council": council_results,
+        "chairman": chairman_data,
+    }
+
+    _council_cache[ticker] = {"ts": time.time(), "data": response}
+    return response
+
+
 @app.get("/chart-data")
 def chart_data(ticker: str = "AAPL"):
     query = f"""

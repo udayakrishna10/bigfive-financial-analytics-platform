@@ -7,7 +7,8 @@ import {
     Bitcoin,
     TrendingUp,
     Activity,
-    Server
+    Server,
+    Users
 } from 'lucide-react';
 
 interface MobileNavProps {
@@ -21,6 +22,7 @@ export const MobileNav = ({ activeTab, setActiveTab }: MobileNavProps) => {
         { id: 'analytics', icon: BarChart3, label: 'Chart' },
         { id: 'economic', icon: TrendingUp, label: 'Econ' },
         { id: 'insights', icon: Sparkles, label: 'AI' },
+        { id: 'council', icon: Users, label: 'Council' },
         { id: 'news', icon: Newspaper, label: 'News' },
         { id: 'crypto', icon: Bitcoin, label: 'Crypto' },
         { id: 'architecture', icon: Activity, label: 'Arch' },
