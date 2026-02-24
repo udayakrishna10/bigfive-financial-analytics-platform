@@ -152,7 +152,7 @@ export const EconomicIndicators: React.FC = () => {
                                         'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}
                             >
                                 {getTrendIcon(indicator.change_pct)}
-                                <span>{Math.abs(indicator.change_pct < 100 ? indicator.change_pct : 0).toFixed(2)}%</span>
+                                <span>{indicator.change_pct != null ? `${indicator.change_pct >= 0 ? '+' : ''}${indicator.change_pct.toFixed(2)}%` : 'N/A'}</span>
                             </div>
                         </div>
 

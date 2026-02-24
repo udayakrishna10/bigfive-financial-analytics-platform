@@ -121,7 +121,12 @@ export const Dashboard = ({ onTickerSelect }: DashboardProps) => {
                     </div>
                   </div>
                   <div className="mt-3 pt-3 border-t border-gray-200 dark:border-slate-700 flex items-center justify-between">
-                    <span className="text-gray-600 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">RSI</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-gray-600 dark:text-slate-400 text-xs font-semibold uppercase tracking-wider">RSI</span>
+                      {!livePoint && (
+                        <span className="text-[8px] text-gray-400 dark:text-slate-600 font-bold uppercase tracking-wider border border-gray-200 dark:border-slate-700 px-1 rounded">prev</span>
+                      )}
+                    </div>
                     <span className={`font-mono font-bold text-sm ${s.rsi_14 > 70 ? 'text-rose-500' : s.rsi_14 < 30 ? 'text-emerald-500' : 'text-gray-900 dark:text-slate-200'}`}>
                       {s.rsi_14?.toFixed(2) || "N/A"}
                     </span>
