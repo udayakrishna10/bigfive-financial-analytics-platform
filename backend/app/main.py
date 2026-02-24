@@ -163,7 +163,12 @@ app = FastAPI(
 
 # CORS configuration - restrict to specific origins
 ALLOWED_ORIGINS = [
+    # Custom domains
+    "https://www.bigfivebyuk.com",
+    "https://bigfivebyuk.com",
+    # Legacy Netlify subdomain (keep during DNS propagation)
     "https://bigfivebyuk.netlify.app",
+    # Local development
     "http://localhost:5173",
     "http://localhost:3000",
     "http://localhost:3001",

@@ -1,7 +1,8 @@
 # BigFive: Scalable Financial Analytics Platform
 **Nov 2025 – Feb 2026**
 
-### Live @ https://bigfivebyuk.netlify.app
+### Live @ https://www.bigfivebyuk.com
+
 
 ## Project Summary
 An end-to-end data engineering and analytics platform providing real-time market intelligence for the "Big Five" tech giants and cryptocurrancies. The project focuses on high-integrity data pipelines and cost-optimized cloud architecture, transitioning from a heavy Kubernetes (GKE) environment to a 98.5% cost-efficient Serverless stack.
