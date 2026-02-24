@@ -3,6 +3,7 @@ import re
 import math
 import logging
 import time
+import json
 import uuid
 from datetime import date, datetime, timezone
 
@@ -11,12 +12,16 @@ import pandas as pd
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from google.cloud import bigquery, storage
+from google.cloud.pubsublite.cloudpubsub import SubscriberClient
+from google.cloud.pubsublite.types import SubscriptionPath, CloudRegion, CloudZone, FlowControlSettings
 from openai import OpenAI
 from pydantic import BaseModel
 from dotenv import load_dotenv
+import asyncio
 
 # ===========================
 # LOGGING & CONFIGURATION
@@ -132,9 +137,16 @@ app = FastAPI(
 # CORS configuration - restrict to specific origins
 ALLOWED_ORIGINS = [
     "https://bigfivebyuk.netlify.app",
-    "http://localhost:5173",  # Local development
-    "http://localhost:3000",  # Alternative local port
-    "http://localhost:3001",  # Current dev server port
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:3003",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    "http://127.0.0.1:3002",
+    "http://127.0.0.1:3003",
 ]
 
 app.add_middleware(
@@ -364,7 +376,7 @@ def stock_screener(
             SELECT 
                 ticker,
                 close,
-                daily_return,
+                daily_return * 100 AS daily_return,
                 rsi_14,
                 macd_histogram
             FROM (
@@ -437,7 +449,7 @@ def ask(request: AskRequest):
     # Fetch recent market data with FULL Technical Indicators
     stock_query = f"""
         SELECT 
-            ticker, trade_date, close, daily_return,
+            ticker, trade_date, close, daily_return * 100 AS daily_return,
             rsi_14, macd_line, macd_signal, macd_histogram,
             bb_upper, bb_middle, bb_lower, volume_ratio
         FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
@@ -767,7 +779,7 @@ def big_five_dashboard(days: int = 30, include_crypto: bool = True):
                     ticker, 
                     trade_date, 
                     close, 
-                    daily_return, 
+                    daily_return * 100 AS daily_return, 
                     rsi_14,
                     ROW_NUMBER() OVER (PARTITION BY ticker ORDER BY trade_date DESC) as rn
                 FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
@@ -987,7 +999,7 @@ def get_market_correlation(series_id: str = "UNRATE", days: int = 365):
                 trade_date,
                 ticker,
                 close,
-                daily_return
+                daily_return * 100 AS daily_return
             FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
             WHERE trade_date >= DATE_SUB(CURRENT_DATE(), INTERVAL @days DAY)
               AND ticker IN UNNEST(@tickers)
@@ -1044,3 +1056,97 @@ def get_market_correlation(series_id: str = "UNRATE", days: int = 365):
     except Exception as e:
         logger.error(f"Failed to calculate correlation: {e}")
         raise HTTPException(status_code=500, detail=f"Error calculating correlation: {str(e)}")
+
+# ===========================
+# REAL-TIME SSE BROADCASTER (Direct Bridge)
+# ===========================
+class Broadcaster:
+    def __init__(self):
+        self.clients = set()
+        self.loop = None
+
+    def broadcast(self, data):
+        """Push data to all connected client queues."""
+        if not self.loop:
+            self.loop = asyncio.get_event_loop()
+            
+        for client_queue in list(self.clients):
+            try:
+                self.loop.call_soon_threadsafe(client_queue.put_nowait, data)
+            except Exception as e:
+                logger.error(f"Error pushing to client queue: {e}")
+
+broadcaster = Broadcaster()
+
+@app.post("/ingest")
+async def ingest_tick(tick: dict):
+    """Endpoint for the poller to send real-time ticks directly."""
+    broadcaster.broadcast(json.dumps(tick))
+    return {"status": "broadcasted"}
+
+@app.get("/realtime-stream")
+async def realtime_stream():
+    """Server-Sent Events endpoint for real-time market data."""
+    if not PROJECT_ID:
+        raise HTTPException(status_code=500, detail="GCP_PROJECT not configured")
+
+    queue = asyncio.Queue()
+    broadcaster.clients.add(queue)
+    
+    async def event_generator():
+        try:
+            while True:
+                try:
+                    data = await asyncio.wait_for(queue.get(), timeout=5.0)
+                    yield f"data: {data}\n\n"
+                except asyncio.TimeoutError:
+                    yield "data: heartbeat\n\n"
+        finally:
+            broadcaster.clients.remove(queue)
+            logger.info("SSE client disconnected from shared stream")
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+@app.get("/intraday-history")
+def get_intraday_history(ticker: str = Query(..., description="Ticker to fetch history for")):
+    """Fetches today's intraday history using YFinance. Handles stocks (market hours) and crypto (24/7)."""
+    try:
+        import yfinance as yf
+
+        CRYPTO_MAP = {"BTC": "BTC-USD", "ETH": "ETH-USD"}
+        yf_ticker = CRYPTO_MAP.get(ticker.upper(), ticker.upper())
+        is_crypto = ticker.upper() in CRYPTO_MAP
+
+        stock = yf.Ticker(yf_ticker)
+
+        # Fetch 2-day daily history to get a clean previous-day close
+        hist_2d = stock.history(period="2d")
+        prev_close = None
+        if len(hist_2d) > 1:
+            prev_close = float(hist_2d['Close'].iloc[-2])
+        elif len(hist_2d) == 1:
+            # For crypto, prev day open can serve as reference
+            prev_close = float(hist_2d['Open'].iloc[0])
+        else:
+            info = stock.info
+            prev_close = info.get('previousClose') or info.get('regularMarketPreviousClose')
+
+        # Fetch today's 1-minute interval (yfinance gives full 24h for crypto, market hours for stocks)
+        df = stock.history(period="1d", interval="1m")
+
+        points = []
+        if not df.empty:
+            for idx, row in df.iterrows():
+                points.append({
+                    "ticker": ticker.upper(),
+                    "price": float(row['Close']),
+                    "volume": int(row['Volume']),
+                    "timestamp": idx.isoformat(),
+                    "prev_close": prev_close,
+                    "is_crypto": is_crypto,
+                })
+
+        return {"ticker": ticker.upper(), "points": points, "prev_close": prev_close}
+    except Exception as e:
+        logger.error(f"Failed to fetch intraday history for {ticker}: {e}")
+        return {"ticker": ticker, "points": [], "error": str(e)}

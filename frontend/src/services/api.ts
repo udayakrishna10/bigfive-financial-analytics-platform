@@ -10,14 +10,13 @@ export interface TickerData {
 
 export const api = {
   getDashboard: (): Promise<{ tickers: TickerData[] }> =>
-    fetch(`${API_CONFIG.BASE_URL}/big-five-dashboard`).then(res => res.json()),
+    fetch(`${API_CONFIG.BASE_URL}/big-five-dashboard`, { cache: 'no-store' }).then(res => res.json()),
 
   getChart: (ticker: string) =>
-    fetch(`${API_CONFIG.BASE_URL}/chart-data?ticker=${ticker}`).then(res => res.json()),
+    fetch(`${API_CONFIG.BASE_URL}/chart-data?ticker=${ticker}`, { cache: 'no-store' }).then(res => res.json()),
 
-  // ADD THIS FUNCTION TO FIX THE ERROR
   getSentiment: (ticker: string) =>
-    fetch(`${API_CONFIG.BASE_URL}/news-sentiment?ticker=${ticker}`).then(async res => {
+    fetch(`${API_CONFIG.BASE_URL}/news-sentiment?ticker=${ticker}`, { cache: 'no-store' }).then(async res => {
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.detail || "Failed to fetch sentiment");
@@ -39,7 +38,7 @@ export const api = {
     }),
 
   getCryptoNews: () =>
-    fetch(`${API_CONFIG.BASE_URL}/crypto-news`).then(async res => {
+    fetch(`${API_CONFIG.BASE_URL}/crypto-news`, { cache: 'no-store' }).then(async res => {
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.detail || "Failed to fetch crypto news");
@@ -48,5 +47,10 @@ export const api = {
     }),
 
   checkHealth: () =>
-    fetch(`${API_CONFIG.BASE_URL}/health`).then(res => res.json()),
+    fetch(`${API_CONFIG.BASE_URL}/health`, { cache: 'no-store' }).then(res => res.json()),
+
+  getRealtimeStreamURL: () => `${API_CONFIG.BASE_URL}/realtime-stream`,
+
+  getIntradayHistory: (ticker: string) =>
+    fetch(`${API_CONFIG.BASE_URL}/intraday-history?ticker=${ticker}&cb=${Date.now()}`, { cache: 'no-store' }).then(res => res.json()),
 };
