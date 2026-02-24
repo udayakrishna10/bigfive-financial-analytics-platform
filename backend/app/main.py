@@ -826,8 +826,9 @@ def big_five_dashboard(days: int = 30, include_crypto: bool = True):
         # Patch with real-time yfinance data so production dashboard shows live 1-day numbers
         try:
             import yfinance as yf
-            yf_tickers = [CRYPTO_MAP.get(t, t) for t in tickers]
-            yf_to_req = {CRYPTO_MAP.get(t, t): t for t in tickers}
+            crypto_map = {"BTC": "BTC-USD", "ETH": "ETH-USD"}
+            yf_tickers = [crypto_map.get(t, t) for t in tickers]
+            yf_to_req = {crypto_map.get(t, t): t for t in tickers}
             
             y_data = yf.Tickers(" ".join(yf_tickers))
             for y_t, t_obj in y_data.tickers.items():
@@ -839,7 +840,7 @@ def big_five_dashboard(days: int = 30, include_crypto: bool = True):
                     if live_price and prev_close and live_price > 0 and prev_close > 0:
                         live_ret = ((live_price - prev_close) / prev_close) * 100
                         for r in records:
-                            if r['ticker'] == req_t:
+                            if r.get('ticker') == req_t:
                                 r['close'] = round(live_price, 2)
                                 r['daily_return'] = round(live_ret, 2)
                                 break
