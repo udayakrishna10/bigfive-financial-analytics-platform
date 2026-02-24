@@ -1079,9 +1079,16 @@ async def ai_council_stream(request: CouncilRequest):
 
         r1_tasks = [loop.run_in_executor(None, _call_r1, agent) for agent in COUNCIL_AGENTS]
         for completed_task in asyncio.as_completed(r1_tasks):
-            res = await completed_task
-            round1_transcript.append(res)
-            yield f"data: {json.dumps({'type': 'agent_message', 'round': 1, 'agent': res['agent'], 'color': res['color'], 'icon_key': res['icon'], 'text': res['reasoning'], 'verdict': res['verdict']})}\n\n"
+            try:
+                res = await completed_task
+                round1_transcript.append(res)
+                yield f"data: {json.dumps({'type': 'agent_message', 'round': 1, 'agent': res['agent'], 'color': res['color'], 'icon_key': res['icon'], 'text': res['reasoning'], 'verdict': res['verdict']})}\n\n"
+            except Exception as e:
+                logger.error(f"Round 1 agent failed: {e}")
+                # We don't yield a message for a failed agent in r1 to keep it clean, 
+                # but we catch so other agents' results can still stream.
+                pass
+            await asyncio.sleep(0.1)  # tiny delay for buffer smoothing
 
         yield f"data: {json.dumps({'type': 'round_start', 'round': 2, 'label': 'Cross-Examination'})}\n\n"
 
@@ -1090,23 +1097,20 @@ async def ai_council_stream(request: CouncilRequest):
         full_transcript_str = "\n".join([f"{r['agent']} said: {r['reasoning']}" for r in round1_transcript])
 
         for agent in COUNCIL_AGENTS:
-            r2_system = f"You are the {agent['name']}. You have just heard the opening statements of the other council members." + \
-                        " Your job is to CHALLENGE another agent directly, mentioning them by name, and DEFEND your own position." + \
-                        " Be dramatic but stick to the facts provided earlier. Quote their claims if needed. " + \
-                        "Output ONLY a 3-sentence rebuttal."
-            
-            r2_user = f"Opening Statements:\n{full_transcript_str}\n\nYour Rebuttal:"
-            
-            # Simple direct call since we want them one by one for SSE drama
-            res_text = await loop.run_in_executor(None, _call_agent_grounded, r2_system, r2_user)
-            # Try to see if it output JSON anyway or just text
             try:
-                # If JSON mode was on, it might be JSON. If not, it's text.
-                # Since _call_agent_grounded uses response_format={"type": "json_object"}, it WILL be JSON.
+                r2_system = f"You are the {agent['name']}. You have just heard the opening statements of the other council members." + \
+                            " Your job is to CHALLENGE another agent directly, mentioning them by name, and DEFEND your own position." + \
+                            " Be dramatic but stick to the facts provided earlier. Quote their claims if needed. " + \
+                            "Output ONLY valid JSON: {\"reasoning\": \"3-sentence rebuttal\"}"
+                
+                r2_user = f"Opening Statements:\n{full_transcript_str}\n\nYour Rebuttal:"
+                
+                res_text = await loop.run_in_executor(None, _call_agent_grounded, r2_system, r2_user)
                 res_json = json.loads(res_text)
                 text = res_json.get("reasoning", res_text)
-            except:
-                text = res_text
+            except Exception as e:
+                logger.error(f"Round 2 agent {agent['name']} failed: {e}")
+                text = "I have reviewed my peers' statements and maintain my earlier position based on the technical and macro data provided."
 
             round2_transcript.append({"agent": agent["name"], "text": text})
             yield f"data: {json.dumps({'type': 'agent_message', 'round': 2, 'agent': agent['name'], 'color': agent['color'], 'icon_key': agent['icon'], 'text': text})}\n\n"
