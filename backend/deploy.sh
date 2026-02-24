@@ -136,17 +136,17 @@ create_scheduler() {
         --quiet
 }
 
-# Bronze - 4:15 PM ET (weekdays, after market close)
-create_scheduler "bronze-etl-job" "bronze-daily-trigger" "15 16 * * 1-5"
+# Bronze (Stocks) - 8:00 PM ET (weekdays, well after market settlement)
+create_scheduler "bronze-etl-job" "bronze-daily-trigger" "0 20 * * 1-5"
 
-# Crypto - 7:00 PM ET (daily, cleaner daily boundary for 24/7 markets)
-create_scheduler "crypto-etl-job" "crypto-daily-trigger" "0 19 * * *"
+# Bronze (Crypto) - 8:15 PM ET (daily, just after 00:00 UTC day boundary)
+create_scheduler "crypto-etl-job" "crypto-daily-trigger" "15 20 * * *"
 
-# Silver - 4:30 PM ET
-create_scheduler "silver-etl-job" "silver-daily-trigger" "30 16 * * 1-5"
+# Silver Transform - 8:30 PM ET (daily, handles both stocks & crypto)
+create_scheduler "silver-etl-job" "silver-daily-trigger" "30 20 * * *"
 
-# Gold - 4:45 PM ET
-create_scheduler "gold-etl-job" "gold-daily-trigger" "45 16 * * 1-5"
+# Gold Analytics - 8:45 PM ET (daily, calculating all indicators cleanly)
+create_scheduler "gold-etl-job" "gold-daily-trigger" "45 20 * * *"
 
 # FRED Economic Data - 6:00 AM ET Monday (weekly, after FRED updates complete)
 create_scheduler "fred-etl-job" "fred-weekly-trigger" "0 6 * * 1"

@@ -73,11 +73,10 @@ export default function App() {
             </div>
           </header>
 
-          {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto p-4 pb-32 md:p-8 custom-scrollbar">
-            <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-500">
+          {/* Content Area - Scrollable on mobile, fixed/flex on desktop */}
+          <div className="flex-1 overflow-y-auto md:overflow-hidden p-4 pb-24 md:p-6 custom-scrollbar flex flex-col">
+            <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500">
               {renderContent()}
-
             </div>
           </div>
 

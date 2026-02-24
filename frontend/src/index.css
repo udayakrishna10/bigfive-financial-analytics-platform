@@ -10,11 +10,13 @@
     font-family: 'Inter', sans-serif;
     background: radial-gradient(circle at top left, #f1f5f9, #e2e8f0);
     transition: background 0.3s ease, color 0.3s ease;
+    --volume-color: #60a5fa; /* Tailwind blue-400 (Light Blue for light mode) */
   }
 
   /* Dark mode background */
   .dark body {
     background: radial-gradient(circle at top left, #0f172a, #020617);
+    --volume-color: #1e3a8a; /* Tailwind blue-900 (Dark Blue for dark mode) */
   }
 
   /* Smooth scrollbars */

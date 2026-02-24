@@ -263,10 +263,11 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
   };
 
   const renderLiveDot = (props: any) => {
-    const { cx, cy, payload, index } = props;
+    const { cx, cy, payload, index, value } = props;
 
     // Only render the pulsing dot on the very last active live tick for 1D chart
-    if (range !== '1D' || !payload.isLive || index !== chartData.length - 1) {
+    // Ensure 'value' is valid to prevent ghost dots on split lines
+    if (range !== '1D' || !payload.isLive || index !== chartData.length - 1 || value == null) {
       return <svg key={`empty-dot-${index}`}></svg>;
     }
 
@@ -283,7 +284,7 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
   };
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950 border border-blue-100 dark:border-blue-900/30 p-5 rounded-2xl backdrop-blur-xl shadow-lg shadow-blue-500/5">
+    <div className="relative flex flex-col h-full overflow-hidden bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950 border border-blue-100 dark:border-blue-900/30 p-4 md:p-5 rounded-2xl backdrop-blur-xl shadow-lg shadow-blue-500/5">
       <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.05))]" style={{ backgroundSize: '30px 30px' }}></div>
       <div className="relative flex flex-col xl:flex-row justify-between items-start xl:items-center mb-5 gap-4">
         <div className="flex items-center gap-3 w-full md:w-auto">
@@ -380,9 +381,9 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 flex-1 min-h-[300px]">
         {/* Main Price Chart */}
-        <div className={`transition-all duration-500 ${showMACD ? 'h-[350px]' : 'h-[500px]'}`}>
+        <div className={`transition-all duration-500 flex-1 min-h-[250px] ${showMACD ? 'basis-2/3' : 'basis-full'}`}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={range === '1D' && referencePrice ? chartData : points} margin={{ top: 10, right: 0, left: 0, bottom: 0 }} syncId="priceChart">
               <defs>
@@ -463,20 +464,14 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
                 }}
               />
 
-              {/* Volume Bars — Apple Stocks style: color matches day direction */}
+              {/* Volume Bars — Light/Dark Blue based on theme */}
               {showVolume && (
                 <Bar
                   yAxisId="volume"
                   dataKey={range === '1D' ? 'volumeSqrt' : 'total_volume'}
                   name="Volume"
-                  fill={
-                    range === '1D'
-                      ? isGaining === true ? '#34c759'
-                        : isGaining === false ? '#ff3b30'
-                          : '#8e8e93'
-                      : '#3b82f6'
-                  }
-                  fillOpacity={0.35}
+                  fill={range === '1D' ? 'var(--volume-color)' : '#3b82f6'}
+                  fillOpacity={0.4}
                   opacity={1}
                   barSize={range === '1D' ? 2 : undefined}
                   radius={[1, 1, 0, 0]}
