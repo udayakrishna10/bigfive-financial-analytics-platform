@@ -15,11 +15,11 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/ask': 'http://127.0.0.1:8000',
-      '/chart-data': 'http://127.0.0.1:8000',
-      '/news-sentiment': 'http://127.0.0.1:8000',
-      '/big-five-dashboard': 'http://127.0.0.1:8000',
-      '/health': 'http://127.0.0.1:8000',
+      '/ask': 'http://127.0.0.1:8080',
+      '/chart-data': 'http://127.0.0.1:8080',
+      '/news-sentiment': 'http://127.0.0.1:8080',
+      '/big-five-dashboard': 'http://127.0.0.1:8080',
+      '/health': 'http://127.0.0.1:8080',
     },
     port: 3000
   }

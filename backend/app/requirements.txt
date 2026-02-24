@@ -10,3 +10,5 @@ requests>=2.31.0
 python-dotenv>=1.0.0
 openai>=1.0.0
 google-cloud-storage==3.8.0
+google-cloud-pubsublite>=1.8.0
+google-cloud-pubsub>=2.18.0
