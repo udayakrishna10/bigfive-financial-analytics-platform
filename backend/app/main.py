@@ -822,6 +822,30 @@ def big_five_dashboard(days: int = 30, include_crypto: bool = True):
         # Sort by defined order
         # Robust NaN handling: force object type so None persists
         records = df.astype(object).where(pd.notnull(df), None).to_dict(orient="records")
+        
+        # Patch with real-time yfinance data so production dashboard shows live 1-day numbers
+        try:
+            import yfinance as yf
+            yf_tickers = [CRYPTO_MAP.get(t, t) for t in tickers]
+            yf_to_req = {CRYPTO_MAP.get(t, t): t for t in tickers}
+            
+            y_data = yf.Tickers(" ".join(yf_tickers))
+            for y_t, t_obj in y_data.tickers.items():
+                req_t = yf_to_req.get(y_t, y_t)
+                fast = getattr(t_obj, 'fast_info', None)
+                if fast:
+                    live_price = getattr(fast, 'last_price', None)
+                    prev_close = getattr(fast, 'previous_close', None)
+                    if live_price and prev_close and live_price > 0 and prev_close > 0:
+                        live_ret = ((live_price - prev_close) / prev_close) * 100
+                        for r in records:
+                            if r['ticker'] == req_t:
+                                r['close'] = round(live_price, 2)
+                                r['daily_return'] = round(live_ret, 2)
+                                break
+        except Exception as e:
+            logger.warning(f"Could not fetch live overlay for dashboard: {e}")
+
         try:
             ticker_order = {t: i for i, t in enumerate(tickers)}
             records.sort(key=lambda x: ticker_order.get(x['ticker'], 999))
