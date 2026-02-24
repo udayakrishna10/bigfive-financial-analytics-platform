@@ -135,11 +135,12 @@ async def lifespan(app: FastAPI):
     try:
         # In Docker, we are in /app, so etl/realtime_poller.py exists
         if os.path.exists("etl/realtime_poller.py"):
-            poller_process = subprocess.Popen(["python", "etl/realtime_poller.py"])
+            logger.info("Launching realtime_poller via subprocess...")
+            poller_process = subprocess.Popen(["python", "-u", "etl/realtime_poller.py"])
             logger.info("Started real-time poller script in background")
         elif os.path.exists("../etl/realtime_poller.py"):
             # For local dev fallback depending on cwd
-            poller_process = subprocess.Popen(["python", "../etl/realtime_poller.py"])
+            poller_process = subprocess.Popen(["python", "-u", "../etl/realtime_poller.py"])
             logger.info("Started local real-time poller")
     except Exception as e:
         logger.error(f"Failed to start real-time poller: {e}")

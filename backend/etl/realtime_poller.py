@@ -178,7 +178,7 @@ async def main():
             logger.info(f"Polled {len(all_updates)} assets. Bridging to backend...")
             for update in all_updates:
                 try:
-                    resp = requests.post("http://localhost:8080/ingest", json=update, timeout=1)
+                    resp = requests.post("http://127.0.0.1:8080/ingest", json=update, timeout=1)
                     if resp.status_code == 200:
                         logger.info(f"Successfully bridged tick for {update['ticker']}")
                     else:
