@@ -769,23 +769,26 @@ def _agent_system_prompt(agent: dict) -> str:
         "neutral": "Your role is to be objective and data-driven only.",
     }[agent["bias"]]
 
+    source_material = "news headlines" if agent["id"] == "sentiment" else "the provided fact sheet"
+    specific_rule = "Do NOT cite technical indicators like RSI or MACD." if agent["id"] == "sentiment" else "Do NOT invent, estimate, or extrapolate any value not explicitly listed."
+
     return f"""You are the {agent['name']} on an elite financial analysis council. {bias_note}
 
 CRITICAL RULES — STRICTLY ENFORCED:
-1. Every number you cite MUST come from the provided fact sheet. No exceptions.
-2. Do NOT invent, estimate, or extrapolate any value not explicitly listed.
-3. If a data point is "N/A", say so — do not guess.
+1. Every detail you cite MUST come from {source_material}. No exceptions.
+2. {specific_rule}
+3. If a data point is "N/A" or no data is available, say so — do not guess.
 
 Output ONLY valid JSON in this exact format (no markdown, no code fences):
 {{
   "verdict": "BULLISH" | "BEARISH" | "NEUTRAL",
   "confidence": <integer 0-100>,
   "key_signals": [
-    "<signal 1: quote exact value from fact sheet>",
-    "<signal 2: quote exact value from fact sheet>",
-    "<signal 3: quote exact value from fact sheet>"
+    "<signal 1: quote exact detail from source>",
+    "<signal 2: quote exact detail from source>",
+    "<signal 3: quote exact detail from source>"
   ],
-  "reasoning": "<2-3 sentences. Every claim must directly reference a specific value from the fact sheet above.>"
+  "reasoning": "<2-3 sentences. Every claim must directly reference the provided data.>"
 }}"""
 
 
@@ -922,7 +925,9 @@ async def ai_council(request: CouncilRequest):
         elif data_type == "macro":
             return base + macro_facts
         elif data_type == "news":
-            return base + news_str + f"\n\nFor context, technical summary:\n{tech_facts[:500]}"
+            if news_str == "No recent headlines available.":
+                return base + "No recent news headlines are available for this ticker at this time.\n\nOutput: verdict=NEUTRAL, confidence=50, key_signals=[\"No headlines available\"], reasoning=\"No news data available to analyze.\""
+            return base + news_str
         else:  # technical_and_macro (bear)
             return base + tech_facts + "\n\n" + macro_facts
 
@@ -1003,6 +1008,130 @@ async def ai_council(request: CouncilRequest):
     }
     _council_cache[ticker] = {"ts": time.time(), "data": response}
     return response
+
+@app.post("/ai-council-stream")
+async def ai_council_stream(request: CouncilRequest):
+    """Dramatic multi-round AI debate streamed via SSE."""
+    check_daily_limit()
+    ticker = request.ticker.upper()
+    if ticker not in ALL_TICKERS:
+        raise HTTPException(status_code=400, detail=f"Unsupported ticker: {ticker}")
+
+    async def generate():
+        # 1. Fetch data (simplified copy of original logic)
+        company = TICKER_TO_COMPANY.get(ticker, ticker)
+        tech_query = f"""
+            SELECT trade_date, close, daily_return * 100 AS daily_return,
+                   rsi_14, macd_line, macd_signal, macd_histogram,
+                   ma_20, ma_50, bb_upper, bb_middle, bb_lower, bb_width, volume_ratio
+            FROM `{PROJECT_ID}.{DATASET}.{GOLD_TABLE}`
+            WHERE ticker = @ticker
+              AND trade_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+            ORDER BY trade_date DESC LIMIT 30
+        """
+        macro_query = f"""
+            SELECT series_id, series_name, observation_date, value
+            FROM `{PROJECT_ID}.{DATASET}.fred_data`
+            WHERE observation_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY)
+            ORDER BY series_id, observation_date DESC LIMIT 60
+        """
+        job_cfg = bigquery.QueryJobConfig(
+            query_parameters=[bigquery.ScalarQueryParameter("ticker", "STRING", ticker)]
+        )
+        try:
+            tech_df = bq_client.query(tech_query, job_config=job_cfg).to_dataframe()
+            macro_df = bq_client.query(macro_query).to_dataframe()
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'detail': str(e)})}\n\n"
+            return
+
+        tech_facts = _build_tech_fact_sheet(tech_df, ticker)
+        macro_facts = _build_macro_fact_sheet(macro_df)
+
+        # News
+        news_str = "No recent headlines available."
+        try:
+            news_res = news_sentiment(ticker=ticker, limit=5)
+            headlines = [f"- \"{a['title']}\" ({a['source']})" for a in (news_res.get("articles") or [])]
+            if headlines:
+                news_str = "=== NEWS HEADLINES ===\n" + "\n".join(headlines)
+        except: pass
+
+        yield f"data: {json.dumps({'type': 'round_start', 'round': 1, 'label': 'Opening Statements', 'ticker': ticker})}\n\n"
+
+        # ROUND 1: Opening (Parallel)
+        round1_transcript = []
+        loop = asyncio.get_event_loop()
+        
+        def make_opening_prompt(agent):
+            base = f"Ticker: {ticker} ({company}). Analysis date: {date.today()}.\n\n"
+            content = tech_facts if agent["data"] == "technical" else \
+                      macro_facts if agent["data"] == "macro" else \
+                      news_str if agent["data"] == "news" else \
+                      tech_facts + "\n" + macro_facts
+            return base + "ROUND 1: OPENING STATEMENT. " + \
+                   "State your position clearly using specific data.\n\n" + content
+
+        def _call_r1(agent):
+            res = _call_agent_grounded(_agent_system_prompt(agent), make_opening_prompt(agent))
+            parsed = _parse_agent_json(res, agent)
+            return parsed
+
+        r1_tasks = [loop.run_in_executor(None, _call_r1, agent) for agent in COUNCIL_AGENTS]
+        for completed_task in asyncio.as_completed(r1_tasks):
+            res = await completed_task
+            round1_transcript.append(res)
+            yield f"data: {json.dumps({'type': 'agent_message', 'round': 1, 'agent': res['agent'], 'color': res['color'], 'icon_key': res['icon'], 'text': res['reasoning'], 'verdict': res['verdict']})}\n\n"
+
+        yield f"data: {json.dumps({'type': 'round_start', 'round': 2, 'label': 'Cross-Examination'})}\n\n"
+
+        # ROUND 2: Cross-Examination (Sequential - Sequential for drama/reactivity)
+        round2_transcript = []
+        full_transcript_str = "\n".join([f"{r['agent']} said: {r['reasoning']}" for r in round1_transcript])
+
+        for agent in COUNCIL_AGENTS:
+            r2_system = f"You are the {agent['name']}. You have just heard the opening statements of the other council members." + \
+                        " Your job is to CHALLENGE another agent directly, mentioning them by name, and DEFEND your own position." + \
+                        " Be dramatic but stick to the facts provided earlier. Quote their claims if needed. " + \
+                        "Output ONLY a 3-sentence rebuttal."
+            
+            r2_user = f"Opening Statements:\n{full_transcript_str}\n\nYour Rebuttal:"
+            
+            # Simple direct call since we want them one by one for SSE drama
+            res_text = await loop.run_in_executor(None, _call_agent_grounded, r2_system, r2_user)
+            # Try to see if it output JSON anyway or just text
+            try:
+                # If JSON mode was on, it might be JSON. If not, it's text.
+                # Since _call_agent_grounded uses response_format={"type": "json_object"}, it WILL be JSON.
+                res_json = json.loads(res_text)
+                text = res_json.get("reasoning", res_text)
+            except:
+                text = res_text
+
+            round2_transcript.append({"agent": agent["name"], "text": text})
+            yield f"data: {json.dumps({'type': 'agent_message', 'round': 2, 'agent': agent['name'], 'color': agent['color'], 'icon_key': agent['icon'], 'text': text})}\n\n"
+
+        yield f"data: {json.dumps({'type': 'round_start', 'round': 3, 'label': 'Chairman Ruling'})}\n\n"
+
+        # CHAIRMAN RULING
+        debate_str = "DEBATE TRANSCRIPT:\n\nROUND 1:\n" + "\n".join([f"{r['agent']}: {r['reasoning']}" for r in round1_transcript]) + \
+                     "\n\nROUND 2:\n" + "\n".join([f"{r['agent']}: {r['text']}" for r in round2_transcript])
+        
+        chair_prompt = f"Council analyzing: {ticker} ({company}) on {date.today()}\n\n" + \
+                       f"FACT SHEET:\n{tech_facts}\n\n" + \
+                       f"{debate_str}\n\n" + \
+                       "Deliver your final ruling based on the debate and the facts."
+
+        chairman_raw = await loop.run_in_executor(None, _call_agent_grounded, CHAIRMAN_SYSTEM, chair_prompt, "gpt-4o")
+        try:
+            chair_data = json.loads(chairman_raw)
+            yield f"data: {json.dumps({'type': 'chairman', **chair_data})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'detail': f'Chairman failed: {str(e)}'})}\n\n"
+
+        yield "data: {\"type\": \"done\"}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
 
