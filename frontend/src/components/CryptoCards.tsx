@@ -65,7 +65,7 @@ export function CryptoCards({ onTickerSelect, historicalData = [], realtimeUpdat
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="h-full grid grid-cols-1 md:grid-cols-2 gap-3">
             {cryptos.map(({ name, symbol, cgKey }) => {
                 const bqData = historicalData.find(h => h.ticker === symbol);
                 const cgData = crypto ? crypto[cgKey] : null;
@@ -87,16 +87,16 @@ export function CryptoCards({ onTickerSelect, historicalData = [], realtimeUpdat
                     <div
                         key={symbol}
                         onClick={() => onTickerSelect?.(symbol)}
-                        className="bg-white dark:bg-slate-800/50 rounded-xl p-4 border border-gray-200 dark:border-slate-700/50 hover:border-purple-500/40 dark:hover:border-purple-500/40 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/10 hover:-translate-y-0.5 relative overflow-hidden group"
+                        className="bg-white dark:bg-slate-800/50 rounded-xl p-3 border border-gray-200 dark:border-slate-700/50 hover:border-purple-500/40 dark:hover:border-purple-500/40 cursor-pointer transition-all duration-300 hover:shadow-md hover:shadow-purple-500/10 hover:-translate-y-0.5 relative overflow-hidden group flex flex-col justify-between"
                     >
-                        <div className="flex justify-between items-start mb-3 relative z-10">
+                        <div className="flex justify-between items-start relative z-10">
                             <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    {getLogo(symbol) && <img src={getLogo(symbol) || ""} alt={symbol} className="w-6 h-6 object-contain" />}
-                                    <h3 className="text-lg font-black text-gray-900 dark:text-white">{name}</h3>
-                                    <span className="text-xs font-mono font-bold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded-lg">{symbol}</span>
+                                <div className="flex items-center gap-1.5 mb-1">
+                                    {getLogo(symbol) && <img src={getLogo(symbol) || ""} alt={symbol} className="w-5 h-5 object-contain" />}
+                                    <h3 className="text-base font-black text-gray-900 dark:text-white">{name}</h3>
+                                    <span className="text-[10px] font-mono font-bold text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">{symbol}</span>
                                 </div>
-                                <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                                <p className="text-xl md:text-2xl font-black text-gray-900 dark:text-white tracking-tight leading-none">
                                     ${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </p>
                             </div>
@@ -115,7 +115,7 @@ export function CryptoCards({ onTickerSelect, historicalData = [], realtimeUpdat
                             </div>
                         </div>
 
-                        <div className="flex items-end justify-between relative z-10">
+                        <div className="flex items-center justify-between relative z-10 mt-2">
                             <div className="flex flex-col gap-1">
                                 {mcap > 0 && (
                                     <p className="text-xs text-gray-600 dark:text-slate-400 font-medium">

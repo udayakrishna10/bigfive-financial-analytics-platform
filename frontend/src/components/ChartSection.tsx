@@ -291,104 +291,77 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
   return (
     <div className="relative flex flex-col h-full overflow-hidden bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950 border border-blue-100 dark:border-blue-900/30 p-4 md:p-5 rounded-2xl backdrop-blur-xl shadow-lg shadow-blue-500/5">
       <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.05))]" style={{ backgroundSize: '30px 30px' }}></div>
-      <div className="relative flex flex-col xl:flex-row justify-between items-start mb-5 gap-5">
 
-        {/* Left Side: Branding + Time + Price */}
-        <div className="flex flex-col sm:flex-row w-full xl:w-auto gap-4 justify-between sm:items-center">
+      {/* ── Compact single-row header ── shrink-0 so it never steals chart height */}
+      <div className="relative flex flex-wrap items-center justify-between gap-2 mb-3 shrink-0">
 
-          <div className="flex items-start md:items-center gap-3 shrink-0 min-w-0">
-            {getLogo(ticker) && <img src={getLogo(ticker) || ""} alt={ticker} className="w-10 h-10 object-contain shrink-0 mt-1 sm:mt-0" />}
-            <div className="flex flex-col min-w-0">
-              <h2 className="text-[16px] sm:text-lg font-black bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent truncate">Market Momentum</h2>
-
-              {/* Time Range Selector */}
-              <div className="flex gap-1.5 sm:gap-2 mt-1.5 sm:mt-2 overflow-x-auto pb-1 scrollbar-hide">
-                {['1D', '7D', '1M', '3M', '6M'].map((r) => (
-                  <button
-                    key={r}
-                    onClick={() => setRange(r)}
-                    className={`px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold rounded-lg transition-all border whitespace-nowrap flex items-center gap-1.5 ${range === r
-                      ? 'bg-blue-500 text-white border-blue-400 shadow-lg shadow-blue-500/20'
-                      : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:bg-gray-200 dark:hover:bg-slate-700'
-                      }`}
-                  >
-                    {r === '1D' && isLive && <Radio size={10} className="animate-pulse text-white" />}
-                    {r}
-                  </button>
-                ))}
-              </div>
+        {/* Left: logo + title + range buttons */}
+        <div className="flex items-center gap-2 min-w-0">
+          {getLogo(ticker) && <img src={getLogo(ticker) || ""} alt={ticker} className="w-7 h-7 object-contain shrink-0" />}
+          <div className="flex flex-col min-w-0">
+            <h2 className="text-sm font-black bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent leading-tight">Market Momentum</h2>
+            <div className="flex gap-1 mt-0.5">
+              {['1D', '7D', '1M', '3M', '6M'].map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setRange(r)}
+                  className={`px-2 py-0.5 text-[9px] font-bold rounded transition-all border whitespace-nowrap flex items-center gap-1 ${range === r
+                    ? 'bg-blue-500 text-white border-blue-400'
+                    : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:bg-gray-200 dark:hover:bg-slate-700'
+                    }`}
+                >
+                  {r === '1D' && isLive && <Radio size={8} className="animate-pulse" />}
+                  {r}
+                </button>
+              ))}
             </div>
-          </div>
-
-          {/* Real-time Momentum Header (Price) */}
-          <div className="flex flex-col items-start sm:items-end shrink-0 pl-1 sm:pl-0">
-            <div className="flex items-baseline gap-2 sm:gap-3">
-              <span className={`text-2xl sm:text-3xl font-black ${(percentChangeForDisplay ?? 0) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                ${currentPrice?.toFixed(2) || realtimeData[ticker]?.price?.toFixed(2) || (points.length > 0 ? points[points.length - 1].close.toFixed(2) : '0.00')}
-              </span>
-              <div className="flex flex-col items-start">
-                <span className={`text-sm sm:text-lg font-black ${(percentChangeForDisplay ?? 0) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                  {(percentChangeForDisplay ?? 0) >= 0 ? '+' : ''}{(percentChangeForDisplay ?? 0).toFixed(2)}%
-                </span>
-                <span className="text-[8px] sm:text-[9px] text-gray-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
-                  {comparisonText}
-                </span>
-              </div>
-            </div>
-            <span className="text-[9px] sm:text-[10px] text-gray-500 font-bold uppercase tracking-widest whitespace-nowrap mt-1">
-              {(realtimeData[ticker] || isLive) ? 'Live Market Momentum' : 'Historical Snapshot'}
-            </span>
           </div>
         </div>
 
-        {/* Right Side: Select & Toggles */}
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full xl:w-auto">
-          {/* Indicator Toggles — some are hidden in 1D as they have no intraday data */}
-          <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
-            <button
-              onClick={() => setShowVolume(!showVolume)}
-              className={`p-2 rounded-md transition-all ${showVolume ? 'bg-white dark:bg-slate-700 text-blue-500 shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-slate-300'}`}
-              title="Toggle Volume"
-            >
-              <BarChart2 size={16} />
+        {/* Center: live price + pct */}
+        <div className="flex items-baseline gap-2">
+          <span className={`text-xl md:text-2xl font-black ${(percentChangeForDisplay ?? 0) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+            ${currentPrice?.toFixed(2) || realtimeData[ticker]?.price?.toFixed(2) || (points.length > 0 ? points[points.length - 1].close.toFixed(2) : '0.00')}
+          </span>
+          <span className={`text-sm font-black ${(percentChangeForDisplay ?? 0) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+            {(percentChangeForDisplay ?? 0) >= 0 ? '+' : ''}{(percentChangeForDisplay ?? 0).toFixed(2)}%
+          </span>
+          <span className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider hidden sm:inline">{comparisonText}</span>
+        </div>
+
+        {/* Right: toggles + select + RSI */}
+        <div className="flex items-center gap-2">
+          {/* Indicator toggles */}
+          <div className="flex items-center gap-1 p-1 bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
+            <button onClick={() => setShowVolume(!showVolume)} className={`p-1.5 rounded transition-all ${showVolume ? 'bg-white dark:bg-slate-700 text-blue-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`} title="Toggle Volume">
+              <BarChart2 size={14} />
             </button>
             {range !== '1D' && (
               <>
-                <button
-                  onClick={() => setShowBB(!showBB)}
-                  className={`p-2 rounded-md transition-all ${showBB ? 'bg-white dark:bg-slate-700 text-purple-500 shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-slate-300'}`}
-                  title="Toggle SMA 20 / SMA 50 + Bollinger Bands"
-                >
-                  <Layers size={16} />
+                <button onClick={() => setShowBB(!showBB)} className={`p-1.5 rounded transition-all ${showBB ? 'bg-white dark:bg-slate-700 text-purple-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`} title="Bollinger Bands">
+                  <Layers size={14} />
                 </button>
-                <button
-                  onClick={() => setShowMACD(!showMACD)}
-                  className={`p-2 rounded-md transition-all ${showMACD ? 'bg-white dark:bg-slate-700 text-orange-500 shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-slate-300'}`}
-                  title="Toggle MACD"
-                >
-                  <Activity size={16} />
+                <button onClick={() => setShowMACD(!showMACD)} className={`p-1.5 rounded transition-all ${showMACD ? 'bg-white dark:bg-slate-700 text-orange-500 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`} title="MACD">
+                  <Activity size={14} />
                 </button>
               </>
             )}
           </div>
 
-          <div className="flex gap-4 items-center w-full md:w-auto">
-            <select value={ticker} onChange={(e) => handleTickerChange(e.target.value)} className="bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg px-4 py-2 outline-none text-sm w-full md:w-auto border border-gray-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500/20">
-              {["AAPL", "AMZN", "META", "NFLX", "GOOGL", "BTC", "ETH"].map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
+          {/* Ticker select */}
+          <select value={ticker} onChange={(e) => handleTickerChange(e.target.value)} className="bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-white rounded-lg px-2 py-1.5 outline-none text-xs border border-gray-300 dark:border-slate-700 focus:ring-1 focus:ring-blue-500/20">
+            {["AAPL", "AMZN", "META", "NFLX", "GOOGL", "BTC", "ETH"].map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
 
-            {points.length > 0 && points[points.length - 1].rsi_14 && (
-              <div className="flex flex-col items-end min-w-[80px]">
-                <span className="text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase">RSI (14)</span>
-                <span className={`text-lg font-bold leading-none ${points[points.length - 1].rsi_14 > 70 ? 'text-rose-500' :
-                  points[points.length - 1].rsi_14 < 30 ? 'text-emerald-500' :
-                    'text-gray-900 dark:text-white'
-                  }`}>
-                  {points[points.length - 1].rsi_14.toFixed(1)}
-                </span>
-              </div>
-            )}
-          </div>
+          {/* RSI badge */}
+          {points.length > 0 && points[points.length - 1].rsi_14 && (
+            <div className="flex flex-col items-end">
+              <span className="text-[9px] text-gray-400 font-bold uppercase">RSI</span>
+              <span className={`text-sm font-bold leading-none ${points[points.length - 1].rsi_14 > 70 ? 'text-rose-500' : points[points.length - 1].rsi_14 < 30 ? 'text-emerald-500' : 'text-gray-900 dark:text-white'}`}>
+                {points[points.length - 1].rsi_14.toFixed(1)}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
