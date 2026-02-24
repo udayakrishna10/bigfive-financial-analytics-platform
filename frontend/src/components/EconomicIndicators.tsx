@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { API_CONFIG } from '../config';
 import { ArrowUp, ArrowDown, Minus, Info, Loader2, AlertCircle } from 'lucide-react';
 import {
-    LineChart, Line, ResponsiveContainer, YAxis, Tooltip
+    AreaChart, Area, ResponsiveContainer, XAxis, YAxis, Tooltip
 } from 'recharts';
 
 interface HistoryPoint {
@@ -163,38 +163,47 @@ export const EconomicIndicators: React.FC = () => {
                             </span>
                         </div>
 
-                        {/* Sparkline Chart */}
-                        <div className="h-12 w-full">
+                        <div className="h-16 w-full mt-2 relative overflow-hidden rounded-lg">
                             {indicator.history && indicator.history.length > 0 ? (
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={indicator.history}>
-                                        <Line
+                                    <AreaChart data={indicator.history} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                                        <defs>
+                                            <linearGradient id={`colorValue-${indicator.series_id}`} x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor={indicator.change_pct >= 0 ? "#10b981" : "#f43f5e"} stopOpacity={0.3} />
+                                                <stop offset="95%" stopColor={indicator.change_pct >= 0 ? "#10b981" : "#f43f5e"} stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <Area
                                             type="monotone"
                                             dataKey="value"
                                             stroke={indicator.change_pct >= 0 ? "#10b981" : "#f43f5e"}
-                                            strokeWidth={2}
-                                            dot={false}
-                                            isAnimationActive={false}
+                                            strokeWidth={2.5}
+                                            fillOpacity={1}
+                                            fill={`url(#colorValue-${indicator.series_id})`}
+                                            isAnimationActive={true}
                                         />
+                                        <XAxis dataKey="date" hide />
                                         <YAxis domain={['auto', 'auto']} hide />
                                         <Tooltip
                                             contentStyle={{
-                                                backgroundColor: '#1f2937',
-                                                border: 'none',
+                                                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                                border: '1px solid rgba(255,255,255,0.1)',
                                                 borderRadius: '0.5rem',
                                                 color: '#f3f4f6',
                                                 fontSize: '0.625rem',
-                                                padding: '0.25rem 0.5rem'
+                                                padding: '0.4rem 0.6rem',
+                                                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)'
                                             }}
-                                            itemStyle={{ color: '#e5e7eb', fontSize: '0.625rem', fontWeight: 'bold' }}
+                                            itemStyle={{ color: '#fff', fontSize: '0.75rem', fontWeight: 'bold' }}
                                             formatter={(value: number) => [formatValue(value, indicator.units), '']}
-                                            labelFormatter={() => ''}
+                                            labelFormatter={(label: any) => formatDate(label)}
+                                            cursor={{ stroke: 'rgba(255,255,255,0.2)', strokeWidth: 1, strokeDasharray: '3 3' }}
                                         />
-                                    </LineChart>
+                                    </AreaChart>
                                 </ResponsiveContainer>
                             ) : (
-                                <div className="h-full w-full flex items-center justify-center text-[10px] text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg font-medium">
-                                    No data
+                                <div className="h-full w-full flex items-center justify-center text-[10px] text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg font-medium border border-dashed border-gray-200 dark:border-gray-700">
+                                    Waiting for trend data...
                                 </div>
                             )}
                         </div>

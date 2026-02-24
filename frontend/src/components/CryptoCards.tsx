@@ -4,6 +4,7 @@ import { API_CONFIG } from '../config';
 import { LineChart, Line, ResponsiveContainer, Tooltip } from 'recharts';
 import { TickerData } from '../services/api';
 import { getLogo } from '../helpers/logos';
+import { RealtimeMessage } from '../hooks/useRealtimeData';
 
 interface CryptoData {
     bitcoin: {
@@ -23,9 +24,10 @@ interface CryptoData {
 interface CryptoCardsProps {
     onTickerSelect?: (ticker: string) => void;
     historicalData?: TickerData[];
+    realtimeUpdates?: Record<string, RealtimeMessage>;
 }
 
-export function CryptoCards({ onTickerSelect, historicalData = [] }: CryptoCardsProps) {
+export function CryptoCards({ onTickerSelect, historicalData = [], realtimeUpdates = {} }: CryptoCardsProps) {
     const [crypto, setCrypto] = useState<CryptoData | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -67,15 +69,16 @@ export function CryptoCards({ onTickerSelect, historicalData = [] }: CryptoCards
             {cryptos.map(({ name, symbol, cgKey }) => {
                 const bqData = historicalData.find(h => h.ticker === symbol);
                 const cgData = crypto ? crypto[cgKey] : null;
+                const livePoint = realtimeUpdates[symbol];
 
-                // Prioritize CoinGecko data, fallback to BigQuery
-                const price = cgData?.usd ?? bqData?.close ?? 0;
-                const change = cgData?.usd_24h_change ?? bqData?.daily_return ?? 0;
+                // Prioritize Real-time, then CoinGecko, fallback to BigQuery
+                const price = livePoint?.price ?? cgData?.usd ?? bqData?.close ?? 0;
+                const change = livePoint?.daily_return ?? cgData?.usd_24h_change ?? bqData?.daily_return ?? 0;
                 const mcap = cgData?.usd_market_cap ?? 0;
-                const volume = cgData?.usd_24h_vol ?? 0; // BQ doesn't have volume in TickerData yet
+                const volume = cgData?.usd_24h_vol ?? 0;
 
-                const hasData = cgData || bqData;
-                if (!hasData) return null; // Should not render if no data at all
+                const hasData = cgData || bqData || livePoint;
+                if (!hasData) return null;
 
                 const isPositive = change >= 0;
                 const history = bqData?.history || [];
@@ -102,7 +105,13 @@ export function CryptoCards({ onTickerSelect, historicalData = [] }: CryptoCards
                                     {isPositive ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
                                     <span className="font-bold text-sm">{Math.abs(change).toFixed(2)}%</span>
                                 </div>
-                                {!cgData && <span className="text-[10px] text-gray-400 mt-1 font-medium">Delayed</span>}
+                                <div className="flex items-center gap-2 mt-1">
+                                    {!cgData && !livePoint && <span className="text-[10px] text-gray-400 font-medium">Delayed</span>}
+                                    {livePoint && <span className="text-[10px] text-purple-500 font-bold animate-pulse">LIVE</span>}
+                                    <span className="text-[10px] text-gray-400 dark:text-slate-500 font-semibold uppercase tracking-wider">
+                                        24H
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
@@ -120,7 +129,6 @@ export function CryptoCards({ onTickerSelect, historicalData = [] }: CryptoCards
                                 )}
                             </div>
 
-                            {/* Sparkline */}
                             <div className="h-12 w-28">
                                 {history.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
