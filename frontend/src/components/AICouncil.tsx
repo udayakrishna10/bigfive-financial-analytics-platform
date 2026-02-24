@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import { API_CONFIG } from '../config';
-import { Users, Gavel, TrendingUp, TrendingDown, Minus, Loader2, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import {
+    Users, Gavel, TrendingUp, TrendingDown, Minus,
+    Loader2, RefreshCw, ChevronDown, ChevronUp,
+    BarChart2, Globe, Newspaper, Scale, Clock
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 interface AgentResult {
     agent: string;
-    icon: string;
+    icon: string;       // kept for API compat, not used for display
     specialty: string;
     color: string;
     verdict: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
@@ -30,6 +35,15 @@ interface CouncilResponse {
 
 const TICKERS = ['AAPL', 'AMZN', 'META', 'NFLX', 'GOOGL', 'BTC', 'ETH'];
 
+// Map agent names → lucide icons (replaces emoji)
+const AGENT_ICON_MAP: Record<string, LucideIcon> = {
+    'Bull Analyst': TrendingUp,
+    'Bear Analyst': TrendingDown,
+    'Technical Oracle': BarChart2,
+    'Macro Strategist': Globe,
+    'News Sentinel': Newspaper,
+};
+
 const VERDICT_CONFIG = {
     BULLISH: { label: 'BULLISH', bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30', icon: TrendingUp },
     BEARISH: { label: 'BEARISH', bg: 'bg-rose-500/15', text: 'text-rose-400', border: 'border-rose-500/30', icon: TrendingDown },
@@ -51,6 +65,14 @@ const COLOR_MAP: Record<string, string> = {
     amber: 'from-amber-500/10 to-amber-500/5 border-amber-500/20',
 };
 
+const ICON_COLOR_MAP: Record<string, string> = {
+    emerald: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
+    rose: 'text-rose-500 bg-rose-500/10 border-rose-500/20',
+    blue: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
+    violet: 'text-violet-500 bg-violet-500/10 border-violet-500/20',
+    amber: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
+};
+
 const BAR_COLOR: Record<string, string> = {
     emerald: 'bg-emerald-500',
     rose: 'bg-rose-500',
@@ -59,24 +81,37 @@ const BAR_COLOR: Record<string, string> = {
     amber: 'bg-amber-500',
 };
 
+// Loading agent stubs for skeleton animation
+const LOADING_AGENTS = [
+    { label: 'Bull Analyst', icon: TrendingUp, color: 'emerald' },
+    { label: 'Bear Analyst', icon: TrendingDown, color: 'rose' },
+    { label: 'Technical Oracle', icon: BarChart2, color: 'blue' },
+    { label: 'Macro Strategist', icon: Globe, color: 'violet' },
+    { label: 'News Sentinel', icon: Newspaper, color: 'amber' },
+];
+
 function AgentCard({ agent }: { agent: AgentResult }) {
     const [expanded, setExpanded] = useState(false);
     const v = VERDICT_CONFIG[agent.verdict] || VERDICT_CONFIG.NEUTRAL;
     const VIcon = v.icon;
+    const AgentIcon = AGENT_ICON_MAP[agent.agent] || BarChart2;
+    const iconCls = ICON_COLOR_MAP[agent.color] || ICON_COLOR_MAP.blue;
 
     return (
         <div className={`relative bg-gradient-to-br ${COLOR_MAP[agent.color] || COLOR_MAP.blue} border rounded-2xl p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg`}>
             {/* Header */}
             <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                    <span className="text-2xl">{agent.icon}</span>
+                <div className="flex items-center gap-2.5">
+                    <div className={`p-1.5 rounded-xl border flex-shrink-0 ${iconCls}`}>
+                        <AgentIcon size={16} />
+                    </div>
                     <div>
                         <p className="font-black text-sm text-gray-900 dark:text-white">{agent.agent}</p>
                         <p className="text-[10px] text-gray-500 dark:text-slate-400 font-medium uppercase tracking-wider">{agent.specialty}</p>
                     </div>
                 </div>
-                <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black border ${v.bg} ${v.text} ${v.border}`}>
-                    <VIcon size={12} />
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-black border flex-shrink-0 ${v.bg} ${v.text} ${v.border}`}>
+                    <VIcon size={11} />
                     {v.label}
                 </div>
             </div>
@@ -99,7 +134,7 @@ function AgentCard({ agent }: { agent: AgentResult }) {
             {agent.key_signals.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-3">
                     {agent.key_signals.slice(0, 2).map((s, i) => (
-                        <span key={i} className="text-[9px] font-semibold text-gray-600 dark:text-slate-400 bg-white/60 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-1.5 py-0.5 rounded-md truncate max-w-[140px]">
+                        <span key={i} className="text-[9px] font-semibold text-gray-600 dark:text-slate-400 bg-white/60 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-1.5 py-0.5 rounded-md truncate max-w-[150px]">
                             {s}
                         </span>
                     ))}
@@ -198,20 +233,41 @@ export const AICouncil = () => {
                 </div>
             )}
 
-            {/* ── Loading skeleton ───────────────────────────────────────── */}
+            {/* ── Loading state ──────────────────────────────────────────── */}
             {loading && (
                 <div className="space-y-4">
+                    {/* Chairman skeleton */}
                     <div className="h-36 bg-gray-100 dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/5 animate-pulse" />
+                    {/* Agent card skeletons with real icons pulsing */}
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                        {[...Array(5)].map((_, i) => (
-                            <div key={i} className="h-44 bg-gray-100 dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/5 animate-pulse" style={{ animationDelay: `${i * 100}ms` }} />
-                        ))}
+                        {LOADING_AGENTS.map((a, i) => {
+                            const Icon = a.icon;
+                            return (
+                                <div
+                                    key={a.label}
+                                    className={`bg-gradient-to-br ${COLOR_MAP[a.color]} border rounded-2xl p-4 animate-pulse`}
+                                    style={{ animationDelay: `${i * 120}ms` }}
+                                >
+                                    <div className="flex items-center gap-2.5 mb-3">
+                                        <div className={`p-1.5 rounded-xl border ${ICON_COLOR_MAP[a.color]}`}>
+                                            <Icon size={16} />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <div className="h-3 w-24 bg-gray-300 dark:bg-slate-600 rounded" />
+                                            <div className="h-2 w-16 bg-gray-200 dark:bg-slate-700 rounded" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <div className="h-2 bg-gray-200 dark:bg-slate-700 rounded w-full" />
+                                        <div className="h-2 bg-gray-200 dark:bg-slate-700 rounded w-4/5" />
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
-                    <div className="flex justify-center items-center gap-3 py-4">
-                        {['🐂', '🐻', '📊', '🌍', '📰'].map((e, i) => (
-                            <span key={i} className="text-2xl animate-bounce" style={{ animationDelay: `${i * 150}ms` }}>{e}</span>
-                        ))}
-                        <span className="text-sm text-gray-500 dark:text-slate-400 font-medium ml-2">Council is deliberating...</span>
+                    <div className="flex justify-center items-center gap-2 py-2 text-sm text-gray-500 dark:text-slate-400 font-medium">
+                        <Loader2 size={14} className="animate-spin text-indigo-500" />
+                        Council is deliberating...
                     </div>
                 </div>
             )}
@@ -224,13 +280,13 @@ export const AICouncil = () => {
                         {/* Chairman header */}
                         <div className="flex items-center gap-3 mb-4">
                             <div className="p-2 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
-                                <Gavel className="text-indigo-300" size={20} />
+                                <Scale className="text-indigo-300" size={20} />
                             </div>
                             <div>
                                 <p className="text-[10px] text-indigo-400 font-black uppercase tracking-widest">Chairman's Ruling</p>
-                                <p className="text-xs text-slate-400 font-medium">
+                                <p className="text-xs text-slate-400 font-medium flex items-center gap-2">
                                     {result.ticker} · {new Date(result.generated_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                                    <button onClick={convene} className="ml-3 text-indigo-400 hover:text-indigo-300 transition-colors inline-flex items-center gap-1">
+                                    <button onClick={convene} className="text-indigo-400 hover:text-indigo-300 transition-colors inline-flex items-center gap-1">
                                         <RefreshCw size={10} /> Reconvene
                                     </button>
                                 </p>
@@ -239,7 +295,7 @@ export const AICouncil = () => {
 
                         {/* Main verdict row */}
                         <div className="flex flex-wrap items-center gap-3 mb-4">
-                            <span className={`text-2xl font-black px-4 py-2 rounded-xl border ${chairVerdict.bg} ${chairVerdict.text} ${chairVerdict.border}`}>
+                            <span className={`text-xl font-black px-4 py-2 rounded-xl border ${chairVerdict.bg} ${chairVerdict.text} ${chairVerdict.border}`}>
                                 {chairman.verdict}
                             </span>
                             {actionCfg && (
@@ -247,8 +303,9 @@ export const AICouncil = () => {
                                     {chairman.action}
                                 </span>
                             )}
-                            <span className="text-xs text-slate-400 font-semibold border border-slate-700 px-3 py-1.5 rounded-xl">
-                                ⏱ {chairman.timeframe}
+                            <span className="text-xs text-slate-400 font-semibold border border-slate-700 px-3 py-1.5 rounded-xl flex items-center gap-1.5">
+                                <Clock size={11} />
+                                {chairman.timeframe}
                             </span>
                             <div className="ml-auto flex items-center gap-2">
                                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Conviction</span>
@@ -281,7 +338,16 @@ export const AICouncil = () => {
             {/* ── Empty state ────────────────────────────────────────────── */}
             {!loading && !result && !error && (
                 <div className="flex flex-col items-center justify-center py-20 gap-4">
-                    <div className="flex gap-3 text-4xl">🐂🐻📊🌍📰</div>
+                    <div className="flex items-center justify-center gap-3">
+                        {LOADING_AGENTS.map((a) => {
+                            const Icon = a.icon;
+                            return (
+                                <div key={a.label} className={`p-2.5 rounded-xl border ${ICON_COLOR_MAP[a.color]}`}>
+                                    <Icon size={18} />
+                                </div>
+                            );
+                        })}
+                    </div>
                     <p className="text-gray-600 dark:text-slate-400 font-medium text-sm">Select a ticker and convene the council to begin deliberation</p>
                     <p className="text-[10px] text-gray-400 dark:text-slate-600 font-mono">50 req/day global · 5 min cache per ticker</p>
                 </div>
