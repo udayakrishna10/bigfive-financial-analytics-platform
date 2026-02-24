@@ -262,6 +262,26 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  const renderLiveDot = (props: any) => {
+    const { cx, cy, payload, index } = props;
+
+    // Only render the pulsing dot on the very last active live tick for 1D chart
+    if (range !== '1D' || !payload.isLive || index !== chartData.length - 1) {
+      return <svg key={`empty-dot-${index}`}></svg>;
+    }
+
+    const isAbove = payload.close >= (referencePrice || 0);
+    const color = isAbove ? '#10b981' : '#f43f5e'; // emerald or rose
+
+    return (
+      <svg x={cx - 6} y={cy - 6} width={12} height={12} overflow="visible" key={`live-dot-${index}`}>
+        <circle cx="6" cy="6" r="4" fill={color} />
+        <circle cx="6" cy="6" r="6" fill={color} className="animate-ping origin-center opacity-75" />
+        <circle cx="6" cy="6" r="1.5" fill="#fff" />
+      </svg>
+    );
+  };
+
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950 border border-blue-100 dark:border-blue-900/30 p-5 rounded-2xl backdrop-blur-xl shadow-lg shadow-blue-500/5">
       <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.05))]" style={{ backgroundSize: '30px 30px' }}></div>
@@ -507,13 +527,13 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
                   <Line
                     yAxisId="left" type="linear" dataKey="closeAbove"
                     name="Price" stroke="#10b981" strokeWidth={2.5}
-                    dot={false} activeDot={{ r: 4, strokeWidth: 0 }}
+                    dot={renderLiveDot} activeDot={{ r: 4, strokeWidth: 0 }}
                     connectNulls={false} isAnimationActive={false}
                   />
                   <Line
                     yAxisId="left" type="linear" dataKey="closeBelow"
                     name="" stroke="#f43f5e" strokeWidth={2.5}
-                    dot={false} activeDot={{ r: 4, strokeWidth: 0 }}
+                    dot={renderLiveDot} activeDot={{ r: 4, strokeWidth: 0 }}
                     connectNulls={false} isAnimationActive={false}
                     legendType="none"
                   />
