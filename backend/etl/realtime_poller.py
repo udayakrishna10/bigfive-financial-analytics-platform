@@ -110,45 +110,51 @@ async def poll_yfinance(ticker):
         return None
 
 async def poll_crypto():
-    """Fetch crypto prices via CoinGecko."""
-    try:
-        url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true"
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(url, headers=headers, timeout=10)
-        
-        if response.status_code == 429:
-            logger.warning("CoinGecko Rate Limit (429).")
-            backoff_manager.increase()
-            return [], True
-            
-        response.raise_for_status()
-        data = response.json()
-        
-        results = []
-        mapping = {"bitcoin": "BTC", "ethereum": "ETH"}
-        
-        for cg_id, ticker in mapping.items():
-            if cg_id in data:
-                current_price = float(data[cg_id]["usd"])
-                change_24h = float(data[cg_id]["usd_24h_change"])
-                # Calculate an approximate prev_close from 24h change: price = prev_close * (1 + change/100)
-                # => prev_close = price / (1 + change/100)
-                approx_prev_close = current_price / (1 + change_24h / 100)
-                
-                results.append({
-                    "ticker": ticker,
-                    "price": current_price,
-                    "prev_close": approx_prev_close,
-                    "daily_return": change_24h,
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "source": "coingecko_realtime"
-                })
-        
-        backoff_manager.reset()
-        return results, False
-    except Exception as e:
-        logger.error(f"Error polling crypto: {e}")
-        return [], True
+    """Fetch crypto prices via yfinance (same source as chart/intraday-history) for consistent daily_return."""
+    results = []
+    had_error = False
+    CRYPTO_MAP = {"BTC": "BTC-USD", "ETH": "ETH-USD"}
+
+    for ticker, yf_symbol in CRYPTO_MAP.items():
+        try:
+            stock = yf.Ticker(yf_symbol)
+            data = stock.fast_info
+            price = data.last_price
+
+            # Use 2-day daily history to get authoritative previous calendar-day close
+            # This matches exactly what /intraday-history does in main.py
+            prev_close = None
+            try:
+                hist_2d = stock.history(period="2d")
+                if len(hist_2d) > 1:
+                    prev_close = float(hist_2d['Close'].iloc[-2])
+                elif len(hist_2d) == 1:
+                    prev_close = float(hist_2d['Open'].iloc[0])
+            except Exception:
+                pass
+
+            if prev_close is None:
+                prev_close = getattr(data, 'previous_close', None) or getattr(data, 'regular_market_previous_close', None)
+
+            if price is None or prev_close is None:
+                raise ValueError(f"Missing price or prev_close for {ticker}")
+
+            daily_return = ((price - prev_close) / prev_close) * 100
+            logger.info(f"DEBUG: {ticker} Price: {price}, PrevClose: {prev_close}, Change: {daily_return:.2f}%")
+
+            results.append({
+                "ticker": ticker,
+                "price": float(price),
+                "prev_close": float(prev_close),
+                "daily_return": float(daily_return),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "source": "yfinance_realtime"
+            })
+        except Exception as e:
+            logger.error(f"Error polling crypto {ticker}: {e}")
+            had_error = True
+
+    return results, had_error
 
 # ===========================
 # MAIN POLLER LOOP
