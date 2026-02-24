@@ -263,15 +263,20 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
   };
 
   const renderLiveDot = (props: any) => {
-    const { cx, cy, payload, index, value } = props;
+    const { cx, cy, payload, index, value, dataKey } = props;
 
     // Only render the pulsing dot on the very last active live tick for 1D chart
-    // Ensure 'value' is valid to prevent ghost dots on split lines
     if (range !== '1D' || !payload.isLive || index !== chartData.length - 1 || value == null) {
       return <svg key={`empty-dot-${index}`}></svg>;
     }
 
     const isAbove = payload.close >= (referencePrice || 0);
+
+    // Prevent double drawing. Only draw the dot for the matching split-line 
+    if ((isAbove && dataKey === 'closeBelow') || (!isAbove && dataKey === 'closeAbove')) {
+      return <svg key={`empty-dot-${index}`}></svg>;
+    }
+
     const color = isAbove ? '#10b981' : '#f43f5e'; // emerald or rose
 
     return (
@@ -286,52 +291,58 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
   return (
     <div className="relative flex flex-col h-full overflow-hidden bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950 border border-blue-100 dark:border-blue-900/30 p-4 md:p-5 rounded-2xl backdrop-blur-xl shadow-lg shadow-blue-500/5">
       <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.05))]" style={{ backgroundSize: '30px 30px' }}></div>
-      <div className="relative flex flex-col xl:flex-row justify-between items-start xl:items-center mb-5 gap-4">
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          {getLogo(ticker) && <img src={getLogo(ticker) || ""} alt={ticker} className="w-10 h-10 object-contain" />}
-          <div className="flex-1">
-            <h2 className="text-lg font-black bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent">Market Momentum</h2>
+      <div className="relative flex flex-col xl:flex-row justify-between items-start mb-5 gap-5">
 
-            {/* Time Range Selector */}
-            <div className="flex gap-2 mt-2 overflow-x-auto pb-1 md:pb-0 scrollbar-hide">
-              {['1D', '7D', '1M', '3M', '6M'].map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRange(r)}
-                  className={`px-3 py-1 text-[10px] font-bold rounded-lg transition-all border whitespace-nowrap flex items-center gap-1.5 ${range === r
-                    ? 'bg-blue-500 text-white border-blue-400 shadow-lg shadow-blue-500/20'
-                    : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:bg-gray-200 dark:hover:bg-slate-700'
-                    }`}
-                >
-                  {r === '1D' && isLive && <Radio size={10} className="animate-pulse text-white" />}
-                  {r}
-                </button>
-              ))}
+        {/* Left Side: Branding + Time + Price */}
+        <div className="flex flex-col sm:flex-row w-full xl:w-auto gap-4 justify-between sm:items-center">
+
+          <div className="flex items-start md:items-center gap-3 shrink-0 min-w-0">
+            {getLogo(ticker) && <img src={getLogo(ticker) || ""} alt={ticker} className="w-10 h-10 object-contain shrink-0 mt-1 sm:mt-0" />}
+            <div className="flex flex-col min-w-0">
+              <h2 className="text-[16px] sm:text-lg font-black bg-gradient-to-r from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400 bg-clip-text text-transparent truncate">Market Momentum</h2>
+
+              {/* Time Range Selector */}
+              <div className="flex gap-1.5 sm:gap-2 mt-1.5 sm:mt-2 overflow-x-auto pb-1 scrollbar-hide">
+                {['1D', '7D', '1M', '3M', '6M'].map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setRange(r)}
+                    className={`px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold rounded-lg transition-all border whitespace-nowrap flex items-center gap-1.5 ${range === r
+                      ? 'bg-blue-500 text-white border-blue-400 shadow-lg shadow-blue-500/20'
+                      : 'bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400 border-gray-200 dark:border-slate-700 hover:bg-gray-200 dark:hover:bg-slate-700'
+                      }`}
+                  >
+                    {r === '1D' && isLive && <Radio size={10} className="animate-pulse text-white" />}
+                    {r}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Real-time Momentum Header */}
-          <div className="flex flex-col items-end xl:items-start xl:ml-6 ml-auto">
-            <div className="flex items-baseline gap-3">
-              <span className={`text-3xl font-black ${(percentChangeForDisplay ?? 0) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+          {/* Real-time Momentum Header (Price) */}
+          <div className="flex flex-col items-start sm:items-end shrink-0 pl-1 sm:pl-0">
+            <div className="flex items-baseline gap-2 sm:gap-3">
+              <span className={`text-2xl sm:text-3xl font-black ${(percentChangeForDisplay ?? 0) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                 ${currentPrice?.toFixed(2) || realtimeData[ticker]?.price?.toFixed(2) || (points.length > 0 ? points[points.length - 1].close.toFixed(2) : '0.00')}
               </span>
               <div className="flex flex-col items-start">
-                <span className={`text-lg font-black ${(percentChangeForDisplay ?? 0) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                <span className={`text-sm sm:text-lg font-black ${(percentChangeForDisplay ?? 0) >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                   {(percentChangeForDisplay ?? 0) >= 0 ? '+' : ''}{(percentChangeForDisplay ?? 0).toFixed(2)}%
                 </span>
-                <span className="text-[9px] text-gray-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
+                <span className="text-[8px] sm:text-[9px] text-gray-500 dark:text-slate-400 font-semibold uppercase tracking-wider">
                   {comparisonText}
                 </span>
               </div>
             </div>
-            <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest whitespace-nowrap mt-1">
+            <span className="text-[9px] sm:text-[10px] text-gray-500 font-bold uppercase tracking-widest whitespace-nowrap mt-1">
               {(realtimeData[ticker] || isLive) ? 'Live Market Momentum' : 'Historical Snapshot'}
             </span>
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full xl:w-auto">
+        {/* Right Side: Select & Toggles */}
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 w-full xl:w-auto">
           {/* Indicator Toggles — some are hidden in 1D as they have no intraday data */}
           <div className="flex items-center gap-2 p-1 bg-gray-100 dark:bg-slate-800 rounded-lg border border-gray-200 dark:border-slate-700">
             <button
