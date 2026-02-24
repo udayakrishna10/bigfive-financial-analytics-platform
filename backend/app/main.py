@@ -566,128 +566,260 @@ ANALYSIS INSTRUCTIONS:
     return {"answer": answer}
 
 # ===========================
-# AI COUNCIL
+# AI COUNCIL — GROUNDED (anti-hallucination)
 # ===========================
+
+import json as _json
 
 class CouncilRequest(BaseModel):
     ticker: str
 
-# 5-minute per-ticker cache
+# 10-minute per-ticker cache (debate is more expensive)
 _council_cache: dict = {}
-COUNCIL_CACHE_TTL = 300  # seconds
+COUNCIL_CACHE_TTL = 600  # seconds
 
 COUNCIL_AGENTS = [
     {
         "id": "bull",
         "name": "Bull Analyst",
-        "icon": "🐂",
+        "icon": "bull",
         "specialty": "Growth & Upside Momentum",
         "color": "emerald",
-        "system": (
-            "You are an aggressive bull analyst. Your job is to find EVERY bullish signal in the data. "
-            "Look for: RSI recovering from oversold, MACD bullish crossovers, price above MA20/MA50, "
-            "volume surges, positive price momentum. Be optimistic but back every claim with specific numbers. "
-            "Do NOT use markdown bold (**text**). Be concise — max 3 sentences of reasoning."
-        ),
         "data": "technical",
+        "bias": "bullish",
     },
     {
         "id": "bear",
         "name": "Bear Analyst",
-        "icon": "🐻",
+        "icon": "bear",
         "specialty": "Risk & Downside Exposure",
         "color": "rose",
-        "system": (
-            "You are a skeptical bear analyst. Your job is to find EVERY risk and warning signal. "
-            "Look for: overbought RSI (>70), MACD bearish divergence, price below key MAs, "
-            "high VIX, rising yields hurting valuations, negative news. Be cautious but cite specific numbers. "
-            "Do NOT use markdown bold (**text**). Be concise — max 3 sentences of reasoning."
-        ),
         "data": "technical_and_macro",
+        "bias": "bearish",
     },
     {
         "id": "technical",
         "name": "Technical Oracle",
-        "icon": "📊",
+        "icon": "chart",
         "specialty": "Pure Chart Technicals",
         "color": "blue",
-        "system": (
-            "You are a pure technical analyst. Analyze ONLY chart signals — RSI, MACD, Bollinger Bands, "
-            "MA crossovers, volume patterns. Ignore all macro and news. Be precise with exact values. "
-            "Do NOT use markdown bold (**text**). Be concise — max 3 sentences of reasoning."
-        ),
         "data": "technical",
+        "bias": "neutral",
     },
     {
         "id": "macro",
         "name": "Macro Strategist",
-        "icon": "🌍",
+        "icon": "globe",
         "specialty": "Economic Big Picture",
         "color": "violet",
-        "system": (
-            "You are a top-down macro strategist. Analyze ONLY macroeconomic indicators — VIX, 10Y Treasury yield, "
-            "CPI inflation, unemployment rate, GDP growth. Assess whether the macro environment supports or hurts equities. "
-            "Do NOT use markdown bold (**text**). Be concise — max 3 sentences of reasoning."
-        ),
         "data": "macro",
+        "bias": "neutral",
     },
     {
         "id": "sentiment",
         "name": "News Sentinel",
-        "icon": "📰",
+        "icon": "news",
         "specialty": "News & Market Sentiment",
         "color": "amber",
-        "system": (
-            "You are a news sentiment analyst. Analyze ONLY the recent headlines provided. "
-            "Assess whether the news tone is positive, negative, or mixed for the stock/crypto. "
-            "Reference specific headline titles. Do NOT use markdown bold (**text**). Be concise — max 3 sentences."
-        ),
         "data": "news",
+        "bias": "neutral",
     },
 ]
 
-CHAIRMAN_SYSTEM = (
-    "You are the Chairman of an elite financial AI council. You have just received verdicts from 5 specialist agents. "
-    "Your job is to synthesize their deliberations into a final ruling. "
-    "Output ONLY valid JSON (no markdown, no code fences) with this exact structure: "
-    '{"verdict": "BULLISH|BEARISH|NEUTRAL", "confidence": <0-100 integer>, '
-    '"action": "ACCUMULATE|HOLD|REDUCE|AVOID", "timeframe": "<e.g. 2-4 weeks>", '
-    '"synthesis": "<3-4 sentence summary of the council debate and your reasoning>"}'
-)
+# ── Pre-computation: build grounded fact sheets from real data ───────────
+def _build_tech_fact_sheet(df: "pd.DataFrame", ticker: str) -> str:
+    """Convert raw BigQuery technical data into a precise labeled fact sheet.
+    GPT reads facts, not raw tables — eliminates misread hallucinations."""
+    if df.empty:
+        return "No technical data available."
 
-def _call_agent_sync(system_prompt: str, user_prompt: str) -> str:
-    """Synchronous OpenAI call for use in thread pool."""
+    latest = df.iloc[0]   # most recent row (sorted DESC)
+    oldest = df.iloc[-1]  # oldest row in window
+
+    def fmt(v, decimals=2):
+        if v is None or (isinstance(v, float) and (v != v)):  # NaN check
+            return "N/A"
+        return f"{float(v):.{decimals}f}"
+
+    # RSI analysis
+    rsi_now = latest.get("rsi_14")
+    rsi_old = oldest.get("rsi_14")
+    if rsi_now is not None and rsi_old is not None:
+        rsi_dir = "rising" if float(rsi_now) > float(rsi_old) else "falling"
+        if float(rsi_now) > 70:
+            rsi_signal = "OVERBOUGHT (>70)"
+        elif float(rsi_now) < 30:
+            rsi_signal = "OVERSOLD (<30)"
+        else:
+            rsi_signal = "NEUTRAL (30-70)"
+    else:
+        rsi_dir, rsi_signal = "unknown", "N/A"
+
+    # MACD state
+    macd_hist = latest.get("macd_histogram")
+    macd_hist_old = df.iloc[min(5, len(df)-1)].get("macd_histogram")
+    if macd_hist is not None and macd_hist_old is not None:
+        macd_state = "BULLISH" if float(macd_hist) > 0 else "BEARISH"
+        macd_momentum = "strengthening" if abs(float(macd_hist)) > abs(float(macd_hist_old)) else "weakening"
+    else:
+        macd_state, macd_momentum = "N/A", "N/A"
+
+    # Determine most recent MACD crossover within the window
+    crossover_date = "N/A"
+    for i in range(1, len(df)):
+        prev_hist = df.iloc[i].get("macd_histogram", 0) or 0
+        curr_hist = df.iloc[i-1].get("macd_histogram", 0) or 0
+        if (prev_hist < 0 and curr_hist > 0) or (prev_hist > 0 and curr_hist < 0):
+            crossover_date = str(df.iloc[i-1].get("trade_date", "N/A"))
+            break
+
+    # Price vs MAs
+    price = latest.get("close")
+    ma20 = latest.get("ma_20")
+    ma50 = latest.get("ma_50")
+    price_vs_ma20 = f"+{((float(price)-float(ma20))/float(ma20)*100):.2f}% ABOVE MA20" \
+        if price and ma20 and float(price) >= float(ma20) \
+        else f"{((float(price)-float(ma20))/float(ma20)*100):.2f}% BELOW MA20" \
+        if price and ma20 else "N/A"
+    price_vs_ma50 = f"+{((float(price)-float(ma50))/float(ma50)*100):.2f}% ABOVE MA50" \
+        if price and ma50 and float(price) >= float(ma50) \
+        else f"{((float(price)-float(ma50))/float(ma50)*100):.2f}% BELOW MA50" \
+        if price and ma50 else "N/A"
+
+    # Bollinger Band position
+    bb_upper = latest.get("bb_upper")
+    bb_lower = latest.get("bb_lower")
+    bb_pct = None
+    if price and bb_upper and bb_lower and (float(bb_upper) - float(bb_lower)) > 0:
+        bb_pct = (float(price) - float(bb_lower)) / (float(bb_upper) - float(bb_lower)) * 100
+
+    bb_pos = f"{bb_pct:.0f}% of band" if bb_pct is not None else "N/A"
+    if bb_pct is not None:
+        if bb_pct > 80:
+            bb_pos += " (near UPPER band — overbought zone)"
+        elif bb_pct < 20:
+            bb_pos += " (near LOWER band — oversold zone)"
+        else:
+            bb_pos += " (mid-band — neutral)"
+
+    # Volume
+    vol_ratio = latest.get("volume_ratio")
+    vol_str = f"{float(vol_ratio):.2f}x 20-day average" if vol_ratio else "N/A"
+
+    # Recent trend (last 5 days of returns)
+    recent_returns = [df.iloc[i].get("daily_return") for i in range(min(5, len(df)))]
+    recent_returns = [float(r) for r in recent_returns if r is not None]
+    pos_days = sum(1 for r in recent_returns if r > 0)
+    neg_days = len(recent_returns) - pos_days
+    trend_str = f"{pos_days} up days / {neg_days} down days in last {len(recent_returns)} sessions"
+
+    return f"""=== TECHNICAL FACT SHEET: {ticker} as of {latest.get('trade_date', 'N/A')} ===
+
+PRICE DATA:
+  Current Close:  ${fmt(price)}
+  vs MA20:        {price_vs_ma20}
+  vs MA50:        {price_vs_ma50}
+  5-day trend:    {trend_str}
+
+RSI (14-period):
+  Current value:  {fmt(rsi_now)} — {rsi_signal}
+  Direction:      {rsi_dir} (was {fmt(rsi_old)} on {oldest.get('trade_date', 'N/A')})
+
+MACD:
+  Line:           {fmt(latest.get('macd_line'))}
+  Signal:         {fmt(latest.get('macd_signal'))}
+  Histogram:      {fmt(latest.get('macd_histogram'))} — {macd_state}, {macd_momentum}
+  Last crossover: {crossover_date}
+
+BOLLINGER BANDS:
+  Upper:          ${fmt(bb_upper)}
+  Middle:         ${fmt(latest.get('bb_middle'))}
+  Lower:          ${fmt(bb_lower)}
+  Price position: {bb_pos}
+
+VOLUME:
+  Volume ratio:   {vol_str}
+
+RULE: You MUST cite values from this fact sheet. Do NOT invent or estimate any number not listed above."""
+
+
+def _build_macro_fact_sheet(df: "pd.DataFrame") -> str:
+    """Build a labeled macro fact sheet from FRED data."""
+    if df.empty:
+        return "No macro data available."
+
+    lines = ["=== MACRO FACT SHEET (FRED data) ===\n"]
+    for series_id, group in df.groupby("series_id"):
+        latest_row = group.iloc[0]
+        val = latest_row.get("value")
+        obs_date = latest_row.get("observation_date", "N/A")
+        name = latest_row.get("series_name", series_id)
+        if val is not None:
+            lines.append(f"  {name} ({series_id}): {float(val):.4g}  [as of {obs_date}]")
+
+    lines.append("\nRULE: You MUST cite values from this fact sheet. Do NOT invent or estimate any number not listed above.")
+    return "\n".join(lines)
+
+
+# ── Structured JSON agent system prompt ─────────────────────────────────
+def _agent_system_prompt(agent: dict) -> str:
+    bias_note = {
+        "bullish": "Your role is to identify every bullish signal. Be optimistic but stay grounded.",
+        "bearish": "Your role is to identify every risk and warning sign. Be skeptical but stay grounded.",
+        "neutral": "Your role is to be objective and data-driven only.",
+    }[agent["bias"]]
+
+    return f"""You are the {agent['name']} on an elite financial analysis council. {bias_note}
+
+CRITICAL RULES — STRICTLY ENFORCED:
+1. Every number you cite MUST come from the provided fact sheet. No exceptions.
+2. Do NOT invent, estimate, or extrapolate any value not explicitly listed.
+3. If a data point is "N/A", say so — do not guess.
+
+Output ONLY valid JSON in this exact format (no markdown, no code fences):
+{{
+  "verdict": "BULLISH" | "BEARISH" | "NEUTRAL",
+  "confidence": <integer 0-100>,
+  "key_signals": [
+    "<signal 1: quote exact value from fact sheet>",
+    "<signal 2: quote exact value from fact sheet>",
+    "<signal 3: quote exact value from fact sheet>"
+  ],
+  "reasoning": "<2-3 sentences. Every claim must directly reference a specific value from the fact sheet above.>"
+}}"""
+
+
+def _call_agent_grounded(system_prompt: str, user_prompt: str, model: str = "gpt-4o-mini") -> str:
+    """Synchronous OpenAI call — low temperature for factual grounding."""
     completion = openai_client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=model,
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
         ],
-        temperature=0.6,
-        max_tokens=300,
+        temperature=0.1,   # low temp = precise, minimal hallucination
+        max_tokens=400,
+        response_format={"type": "json_object"},  # force JSON mode
     )
     return completion.choices[0].message.content.strip()
 
-def _parse_agent_response(raw: str, agent: dict) -> dict:
-    """Parse a free-text agent response into structured fields."""
-    text = raw.strip()
-    # Detect verdict keyword
-    verdict = "NEUTRAL"
-    text_upper = text.upper()
-    if any(w in text_upper for w in ["BULLISH", "BUY", "POSITIVE", "UPSIDE", "ACCUMULATE"]):
-        verdict = "BULLISH"
-    elif any(w in text_upper for w in ["BEARISH", "SELL", "NEGATIVE", "DOWNSIDE", "AVOID", "REDUCE"]):
-        verdict = "BEARISH"
 
-    # Confidence: scan for percent mentions
-    import re as _re
-    conf_match = _re.search(r'(\d{1,3})\s*%', text)
-    confidence = int(conf_match.group(1)) if conf_match else (70 if verdict == "NEUTRAL" else 65)
-    confidence = max(0, min(100, confidence))
-
-    # Key signals: first sentence fragments
-    sentences = [s.strip() for s in text.split('.') if len(s.strip()) > 10]
-    key_signals = sentences[:3] if sentences else [text[:80]]
+def _parse_agent_json(raw: str, agent: dict) -> dict:
+    """Parse the structured JSON response from an agent."""
+    try:
+        data = _json.loads(raw)
+        verdict = data.get("verdict", "NEUTRAL").upper()
+        if verdict not in ("BULLISH", "BEARISH", "NEUTRAL"):
+            verdict = "NEUTRAL"
+        confidence = int(data.get("confidence", 60))
+        confidence = max(0, min(100, confidence))
+        key_signals = data.get("key_signals", [])
+        reasoning = data.get("reasoning", "")
+    except Exception as e:
+        logger.error(f"Agent JSON parse error for {agent['name']}: {e} | raw: {raw[:200]}")
+        verdict, confidence = "NEUTRAL", 50
+        key_signals = ["Parse error — agent response malformed"]
+        reasoning = raw[:300]
 
     return {
         "agent": agent["name"],
@@ -696,19 +828,38 @@ def _parse_agent_response(raw: str, agent: dict) -> dict:
         "color": agent["color"],
         "verdict": verdict,
         "confidence": confidence,
-        "reasoning": text,
+        "reasoning": reasoning,
         "key_signals": key_signals,
     }
 
+
+CHAIRMAN_SYSTEM = """You are the Chairman of an elite financial AI council.
+You have received verdicts from 5 specialist agents AND the raw data fact sheet they analyzed.
+
+Your job: cross-check agent claims against the fact sheet, then deliver a final ruling.
+
+CRITICAL RULES:
+1. If an agent cited a value that contradicts the fact sheet, disregard that claim.
+2. Your synthesis must reference only verified data points from the fact sheet.
+3. Output ONLY valid JSON (no markdown, no code fences):
+{
+  "verdict": "BULLISH" | "BEARISH" | "NEUTRAL",
+  "confidence": <integer 0-100>,
+  "action": "ACCUMULATE" | "HOLD" | "REDUCE" | "AVOID",
+  "timeframe": "<e.g. 2-4 weeks>",
+  "synthesis": "<3-4 sentences grounded in specific verified data points>",
+  "decisive_signal": "<the single most important data point that drove your ruling>"
+}"""
+
+
 @app.post("/ai-council")
 async def ai_council(request: CouncilRequest):
-    """Run 5 specialist AI agents in parallel on a ticker, then synthesize via Chairman."""
+    """Run 5 grounded AI agents in parallel, Chairman synthesizes with full fact verification."""
     check_daily_limit()
 
     ticker = request.ticker.upper()
     if ticker not in ALL_TICKERS:
         raise HTTPException(status_code=400, detail=f"Unsupported ticker: {ticker}")
-
     if not openai_client:
         raise HTTPException(status_code=503, detail="AI Council requires OPENAI_API_KEY.")
 
@@ -718,8 +869,7 @@ async def ai_council(request: CouncilRequest):
         logger.info(f"Council cache hit for {ticker}")
         return cached["data"]
 
-    # ── Fetch data slices ──────────────────────────────────────────────
-    # Technical: last 30 days for this ticker
+    # ── 1. Fetch raw data from BigQuery ────────────────────────────────
     tech_query = f"""
         SELECT trade_date, close, daily_return * 100 AS daily_return,
                rsi_14, macd_line, macd_signal, macd_histogram,
@@ -732,7 +882,7 @@ async def ai_council(request: CouncilRequest):
     macro_query = f"""
         SELECT series_id, series_name, observation_date, value
         FROM `{PROJECT_ID}.{DATASET}.fred_data`
-        WHERE observation_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 35 DAY)
+        WHERE observation_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY)
         ORDER BY series_id, observation_date DESC LIMIT 60
     """
     job_cfg = bigquery.QueryJobConfig(
@@ -745,43 +895,53 @@ async def ai_council(request: CouncilRequest):
         logger.error(f"Council BQ fetch failed: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch market data.")
 
-    tech_str = tech_df.to_string(index=False) if not tech_df.empty else "No technical data available."
-    macro_str = macro_df.to_string(index=False) if not macro_df.empty else "No macro data available."
+    # ── 2. Pre-compute grounded fact sheets (Python, not GPT) ───────────
+    tech_facts = _build_tech_fact_sheet(tech_df, ticker)
+    macro_facts = _build_macro_fact_sheet(macro_df)
 
-    # News headlines
+    # News headlines (real titles, not summarized)
     news_str = "No recent headlines available."
     try:
         news_res = news_sentiment(ticker=ticker, limit=5)
-        headlines = [f"- {a['title']} ({a['source']})" for a in (news_res.get("articles") or [])]
+        headlines = [f"- \"{a['title']}\" ({a['source']}, {a.get('publishedAt','')[:10]})"
+                     for a in (news_res.get("articles") or [])]
         if headlines:
-            news_str = "\n".join(headlines)
+            news_str = "=== NEWS HEADLINES ===\n" + "\n".join(headlines) + \
+                       "\n\nRULE: Cite specific headline titles. Do not invent any headlines."
     except Exception:
         pass
 
-    # ── Build per-agent user prompts ────────────────────────────────────
+    company = TICKER_TO_COMPANY.get(ticker, ticker)
+
+    # ── 3. Build per-agent prompts using fact sheets, not raw tables ─────
     def make_prompt(agent: dict) -> str:
-        company = TICKER_TO_COMPANY.get(ticker, ticker)
-        base = f"Ticker: {ticker} ({company}). Today: {date.today()}.\n\n"
+        base = f"Ticker: {ticker} ({company}). Analysis date: {date.today()}.\n\n"
         data_type = agent["data"]
         if data_type == "technical":
-            return base + f"Technical Data (last 30 days):\n{tech_str}\n\nProvide your verdict and reasoning."
+            return base + tech_facts
         elif data_type == "macro":
-            return base + f"Macro Indicators:\n{macro_str}\n\nProvide your verdict on the macro environment for {ticker}."
+            return base + macro_facts
         elif data_type == "news":
-            return base + f"Recent Headlines:\n{news_str}\n\nProvide your sentiment verdict."
-        else:  # technical_and_macro
-            return base + f"Technical Data:\n{tech_str}\n\nMacro Indicators:\n{macro_str}\n\nProvide your risk assessment."
+            return base + news_str + f"\n\nFor context, technical summary:\n{tech_facts[:500]}"
+        else:  # technical_and_macro (bear)
+            return base + tech_facts + "\n\n" + macro_facts
 
-    # ── Run all 5 agents in parallel using thread pool ──────────────────
+    # ── 4. Run all 5 agents in parallel, temperature=0.1, JSON output ───
     loop = asyncio.get_event_loop()
     agent_tasks = [
-        loop.run_in_executor(None, _call_agent_sync, agent["system"], make_prompt(agent))
+        loop.run_in_executor(
+            None,
+            _call_agent_grounded,
+            _agent_system_prompt(agent),
+            make_prompt(agent),
+            "gpt-4o-mini"
+        )
         for agent in COUNCIL_AGENTS
     ]
     raw_responses = await asyncio.gather(*agent_tasks, return_exceptions=True)
 
     council_results = []
-    council_summary_for_chairman = []
+    agent_summaries = []
     for agent, raw in zip(COUNCIL_AGENTS, raw_responses):
         if isinstance(raw, Exception):
             logger.error(f"Agent {agent['name']} failed: {raw}")
@@ -789,42 +949,50 @@ async def ai_council(request: CouncilRequest):
                 "agent": agent["name"], "icon": agent["icon"],
                 "specialty": agent["specialty"], "color": agent["color"],
                 "verdict": "NEUTRAL", "confidence": 50,
-                "reasoning": "Agent unavailable.", "key_signals": []
+                "reasoning": "Agent unavailable.", "key_signals": [],
             }
         else:
-            result = _parse_agent_response(raw, agent)
+            result = _parse_agent_json(raw, agent)
+
         council_results.append(result)
-        council_summary_for_chairman.append(
-            f"{agent['icon']} {agent['name']} ({agent['specialty']}): {result['verdict']} "
-            f"[{result['confidence']}% confidence] — {result['reasoning'][:200]}"
+        agent_summaries.append(
+            f"{agent['name']} ({agent['specialty']}): {result['verdict']} "
+            f"[{result['confidence']}% confidence]\n"
+            f"Key signals: {'; '.join(result['key_signals'][:2])}\n"
+            f"Reasoning: {result['reasoning']}"
         )
 
-    # ── Chairman synthesizes ────────────────────────────────────────────
+    # ── 5. Chairman: gpt-4o, sees BOTH fact sheet AND agent summaries ───
     chairman_prompt = (
-        f"You are chairing a council analyzing {ticker} ({TICKER_TO_COMPANY.get(ticker, ticker)}) on {date.today()}.\n\n"
-        "Council verdicts:\n" + "\n\n".join(council_summary_for_chairman) +
-        "\n\nOutput your synthesis as valid JSON only."
+        f"Council analyzing: {ticker} ({company}) on {date.today()}\n\n"
+        f"RAW FACT SHEET (authoritative — use this to verify agent claims):\n{tech_facts}\n\n"
+        f"MACRO FACTS:\n{macro_facts}\n\n"
+        "AGENT VERDICTS:\n" + "\n\n".join(agent_summaries) +
+        "\n\nCross-check agent claims against the fact sheet. Output your ruling as valid JSON only."
     )
     try:
         chairman_raw = await loop.run_in_executor(
-            None, _call_agent_sync, CHAIRMAN_SYSTEM, chairman_prompt
+            None,
+            _call_agent_grounded,
+            CHAIRMAN_SYSTEM,
+            chairman_prompt,
+            "gpt-4o"   # Chairman uses the stronger model
         )
-        import json as _json
-        # Strip any accidental markdown fences
-        clean = chairman_raw.strip().strip("```json").strip("```").strip()
+        clean = chairman_raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
         chairman_data = _json.loads(clean)
-        # Validate required keys
-        for k in ["verdict", "confidence", "action", "timeframe", "synthesis"]:
+        for k in ["verdict", "confidence", "action", "timeframe", "synthesis", "decisive_signal"]:
             if k not in chairman_data:
-                raise ValueError(f"Missing key: {k}")
+                chairman_data[k] = "N/A" if k in ("timeframe", "decisive_signal") else \
+                                   50 if k == "confidence" else "NEUTRAL" if k == "verdict" else \
+                                   "HOLD" if k == "action" else ""
+        # Clamp confidence
+        chairman_data["confidence"] = max(0, min(100, int(chairman_data.get("confidence", 50))))
     except Exception as e:
-        logger.error(f"Chairman parse failed: {e} | raw: {chairman_raw[:200] if 'chairman_raw' in dir() else 'N/A'}")
+        logger.error(f"Chairman failed: {e}")
         chairman_data = {
-            "verdict": "NEUTRAL",
-            "confidence": 50,
-            "action": "HOLD",
-            "timeframe": "N/A",
-            "synthesis": "The council was unable to reach a conclusive verdict. Please retry."
+            "verdict": "NEUTRAL", "confidence": 50, "action": "HOLD",
+            "timeframe": "N/A", "synthesis": "Chairman analysis unavailable. Please retry.",
+            "decisive_signal": "N/A"
         }
 
     response = {
@@ -833,9 +1001,10 @@ async def ai_council(request: CouncilRequest):
         "council": council_results,
         "chairman": chairman_data,
     }
-
     _council_cache[ticker] = {"ts": time.time(), "data": response}
     return response
+
+
 
 
 @app.get("/chart-data")

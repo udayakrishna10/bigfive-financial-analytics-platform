@@ -24,6 +24,7 @@ interface ChairmanVerdict {
     action: string;
     timeframe: string;
     synthesis: string;
+    decisive_signal?: string;
 }
 
 interface CouncilResponse {
@@ -320,6 +321,12 @@ export const AICouncil = () => {
                         <p className="text-slate-200 text-sm leading-relaxed font-medium italic border-t border-indigo-500/20 pt-4">
                             "{chairman.synthesis}"
                         </p>
+                        {chairman.decisive_signal && chairman.decisive_signal !== 'N/A' && (
+                            <div className="mt-3 flex items-start gap-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl px-3 py-2">
+                                <span className="text-[10px] text-indigo-400 font-black uppercase tracking-widest whitespace-nowrap mt-0.5">Decisive Signal</span>
+                                <span className="text-[11px] text-indigo-200 font-medium">{chairman.decisive_signal}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
