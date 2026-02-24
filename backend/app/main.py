@@ -125,6 +125,31 @@ http_session = requests.Session()
 http_session.mount("https://", adapter)
 http_session.mount("http://", adapter)
 
+from contextlib import asynccontextmanager
+import subprocess
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Start the real-time poller script in the background when the app starts
+    poller_process = None
+    try:
+        # In Docker, we are in /app, so etl/realtime_poller.py exists
+        if os.path.exists("etl/realtime_poller.py"):
+            poller_process = subprocess.Popen(["python", "etl/realtime_poller.py"])
+            logger.info("Started real-time poller script in background")
+        elif os.path.exists("../etl/realtime_poller.py"):
+            # For local dev fallback depending on cwd
+            poller_process = subprocess.Popen(["python", "../etl/realtime_poller.py"])
+            logger.info("Started local real-time poller")
+    except Exception as e:
+        logger.error(f"Failed to start real-time poller: {e}")
+        
+    yield
+    
+    if poller_process:
+        poller_process.terminate()
+        logger.info("Terminated real-time poller script")
+
 # ===========================
 # FASTAPI APP SETUP
 # ===========================
@@ -132,6 +157,7 @@ app = FastAPI(
     title="BigFive API",
     description="LLM-powered insights + time-series analytics for BigFive stocks",
     version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS configuration - restrict to specific origins
