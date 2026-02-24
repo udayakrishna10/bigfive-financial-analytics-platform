@@ -64,9 +64,9 @@ export const Dashboard = ({ onTickerSelect }: DashboardProps) => {
   const cryptoStocks = stocks.filter(s => ['BTC', 'ETH'].includes(s.ticker));
 
   return (
-    <div className="flex flex-col space-y-6 w-full max-w-7xl mx-auto pb-4">
+    <div className="flex flex-col gap-4 w-full max-w-7xl mx-auto h-full md:overflow-y-auto md:overflow-x-hidden custom-scrollbar pb-4 pr-1">
       {/* Tech Stocks Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950 p-5 rounded-2xl border border-blue-100 dark:border-blue-900/30 shadow-lg shadow-blue-500/5 flex-shrink-0">
+      <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/30 shadow-lg shadow-blue-500/5 shrink-0">
         <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.05))]" style={{ backgroundSize: '30px 30px' }}></div>
         <div className="relative">
           <div className="flex justify-between items-center mb-3">
@@ -134,7 +134,7 @@ export const Dashboard = ({ onTickerSelect }: DashboardProps) => {
       </div>
 
       {/* Crypto Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-purple-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-900 dark:to-purple-950 p-6 rounded-2xl border border-purple-100 dark:border-purple-900/30 shadow-lg shadow-purple-500/5 flex-shrink-0">
+      <div className="relative overflow-hidden bg-gradient-to-br from-purple-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-900 dark:to-purple-950 p-4 rounded-2xl border border-purple-100 dark:border-purple-900/30 shadow-lg shadow-purple-500/5 shrink-0">
         <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.05))]" style={{ backgroundSize: '30px 30px' }}></div>
         <div className="relative">
           <div className="flex justify-between items-center mb-3">

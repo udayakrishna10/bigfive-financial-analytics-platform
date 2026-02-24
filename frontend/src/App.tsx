@@ -40,7 +40,7 @@ export default function App() {
 
   return (
     <RealtimeProvider>
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-200 flex overflow-hidden relative">
+      <div className="h-screen bg-gray-50 dark:bg-slate-950 text-gray-900 dark:text-slate-200 flex overflow-hidden">
         {/* Sonner for stylish toast notifications */}
         <Toaster position="top-right" theme="dark" />
 
@@ -49,7 +49,7 @@ export default function App() {
           <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
         </div>
 
-        <main className="flex-1 flex flex-col min-w-0 relative bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+        <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden relative bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
           {/* Futuristic Header - Responsive */}
           <header className="h-20 border-b border-gray-200 dark:border-white/5 bg-white dark:bg-white/5 backdrop-blur-2xl flex items-center justify-between px-6 md:px-8 z-20 shadow-2xl shadow-black/20 sticky top-0 relative">
             <div className="flex flex-col">
@@ -73,9 +73,9 @@ export default function App() {
             </div>
           </header>
 
-          {/* Content Area - Scrollable on mobile, fixed/flex on desktop */}
-          <div className="flex-1 overflow-y-auto md:overflow-hidden p-4 pb-24 md:p-6 custom-scrollbar flex flex-col">
-            <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-500">
+          {/* Content Area: mobile scrolls, desktop is strictly bounded to remaining vh */}
+          <div className="flex-1 min-h-0 overflow-y-auto md:overflow-hidden p-4 pb-24 md:p-5 md:pb-5 custom-scrollbar flex flex-col">
+            <div className="max-w-7xl mx-auto w-full flex-1 min-h-0 flex flex-col animate-in fade-in duration-300">
               {renderContent()}
             </div>
           </div>

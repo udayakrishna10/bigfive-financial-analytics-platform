@@ -392,9 +392,9 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
         </div>
       </div>
 
-      <div className="flex flex-col gap-4 flex-1 min-h-[300px]">
+      <div className="flex flex-col gap-3 flex-1 min-h-0">
         {/* Main Price Chart */}
-        <div className={`transition-all duration-500 flex-1 min-h-[250px] ${showMACD ? 'basis-2/3' : 'basis-full'}`}>
+        <div className={`transition-all duration-500 min-h-0 ${showMACD ? 'flex-[2]' : 'flex-1'}`}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={range === '1D' && referencePrice ? chartData : points} margin={{ top: 10, right: 0, left: 0, bottom: 0 }} syncId="priceChart">
               <defs>
@@ -609,7 +609,7 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
         )}
       </div>
 
-      <div className="mt-4 flex items-center justify-between">
+      <div className="pt-2 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <div className={`h-1.5 w-1.5 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`} />
           <p className="text-[10px] text-gray-500 font-mono uppercase">
