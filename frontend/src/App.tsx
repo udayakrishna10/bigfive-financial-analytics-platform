@@ -51,7 +51,7 @@ export default function App() {
 
         <main className="flex-1 flex flex-col min-w-0 relative bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
           {/* Futuristic Header - Responsive */}
-          <header className="h-20 border-b border-gray-200 dark:border-white/5 bg-white dark:bg-white/5 backdrop-blur-2xl flex items-center justify-between px-6 md:px-8 z-20 shadow-2xl shadow-black/20 sticky top-0 relative">
+          <header className="h-14 border-b border-gray-200 dark:border-white/5 bg-white dark:bg-white/5 backdrop-blur-2xl flex items-center justify-between px-4 md:px-6 z-20 shadow-lg shadow-black/10 sticky top-0 relative">
             <div className="flex flex-col">
               <h1 className="text-xl font-bold text-gray-900 dark:text-white capitalize tracking-tight md:block hidden">{activeTab}</h1>
               {/* Mobile: Show active tab smaller or rely on bottom nav, keeping space for centered logo */}
@@ -74,7 +74,7 @@ export default function App() {
           </header>
 
           {/* Scrollable Content Area */}
-          <div className="flex-1 overflow-y-auto p-4 pb-32 md:p-8 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-4 pb-32 md:p-5 md:pb-16 custom-scrollbar">
             <div className="max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-2 duration-500">
               {renderContent()}
             </div>
