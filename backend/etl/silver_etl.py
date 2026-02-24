@@ -143,20 +143,24 @@ def build_incremental_sql(last_trade_date) -> str:
             ) AS daily_return
         FROM daily
     ),
-    indicators AS (
+    with_arrays AS (
         SELECT
             *,
-            -- EMA calculations for MACD (using approximation with weighted moving average)
-            AVG(close) OVER (
-                PARTITION BY ticker 
-                ORDER BY trade_date 
-                ROWS BETWEEN 11 PRECEDING AND CURRENT ROW
-            ) AS ema_12,
-            AVG(close) OVER (
-                PARTITION BY ticker 
-                ORDER BY trade_date 
-                ROWS BETWEEN 25 PRECEDING AND CURRENT ROW
-            ) AS ema_26,
+            ARRAY_AGG(close) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN 25 PRECEDING AND CURRENT ROW) AS arr26,
+            ARRAY_AGG(close) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS arr12
+        FROM returns
+    ),
+    indicators AS (
+        SELECT
+            * EXCEPT (arr26, arr12),
+            -- True EMA-12 (alpha = 2/13)
+            CASE WHEN ARRAY_LENGTH(arr12) = 12
+                THEN (SELECT SUM(v * POW(11/13, off)) / SUM(POW(11/13, off)) FROM UNNEST(arr12) AS v WITH OFFSET off)
+                ELSE NULL END AS ema_12,
+            -- True EMA-26 (alpha = 2/27)
+            CASE WHEN ARRAY_LENGTH(arr26) = 26
+                THEN (SELECT SUM(v * POW(25/27, off)) / SUM(POW(25/27, off)) FROM UNNEST(arr26) AS v WITH OFFSET off)
+                ELSE NULL END AS ema_26,
             -- Bollinger Bands components
             AVG(close) OVER (
                 PARTITION BY ticker 
@@ -174,25 +178,27 @@ def build_incremental_sql(last_trade_date) -> str:
                 ORDER BY trade_date 
                 ROWS BETWEEN 19 PRECEDING AND CURRENT ROW
             ) AS vma_20
-        FROM returns
+        FROM with_arrays
     ),
     macd_calc AS (
         SELECT
             *,
-            -- MACD Line = EMA12 - EMA26
             (ema_12 - ema_26) AS macd_line
         FROM indicators
     ),
-    macd_signal_calc AS (
+    with_signal_array AS (
         SELECT
             *,
-            -- MACD Signal = 9-period SMA of MACD Line
-            AVG(macd_line) OVER (
-                PARTITION BY ticker 
-                ORDER BY trade_date 
-                ROWS BETWEEN 8 PRECEDING AND CURRENT ROW
-            ) AS macd_signal
+            ARRAY_AGG(macd_line) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN 8 PRECEDING AND CURRENT ROW) AS arr_signal
         FROM macd_calc
+    ),
+    macd_signal_calc AS (
+        SELECT
+            * EXCEPT (arr_signal),
+            CASE WHEN macd_line IS NOT NULL AND ARRAY_LENGTH(arr_signal) = 9
+                THEN (SELECT SUM(v * POW(0.8, off)) / SUM(POW(0.8, off)) FROM UNNEST(arr_signal) AS v WITH OFFSET off)
+                ELSE NULL END AS macd_signal
+        FROM with_signal_array
     ),
     final_indicators AS (
         SELECT
