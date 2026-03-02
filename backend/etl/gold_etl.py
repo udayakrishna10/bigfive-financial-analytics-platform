@@ -112,8 +112,8 @@ def run_gold_etl():
       with_arrays AS (
         SELECT
           *,
-          ARRAY_AGG(close) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN 25 PRECEDING AND CURRENT ROW) AS arr26,
-          ARRAY_AGG(close) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS arr12
+          ARRAY_AGG(close) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN CURRENT ROW AND 25 FOLLOWING) AS arr26,
+          ARRAY_AGG(close) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN CURRENT ROW AND 11 FOLLOWING) AS arr12
         FROM daily
       ),
 
@@ -221,14 +221,14 @@ def run_gold_etl():
             )
             ELSE NULL
           END AS volume_ratio
-        FROM daily
+        FROM with_arrays
       ),
 
       -- Array of last 9 MACD line values for Signal EMA
       with_signal_array AS (
         SELECT
           *,
-          ARRAY_AGG(macd_line) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN 8 PRECEDING AND CURRENT ROW) AS arr_signal
+          ARRAY_AGG(macd_line) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN CURRENT ROW AND 8 FOLLOWING) AS arr_signal
         FROM macd_base
       ),
       metrics AS (
@@ -257,10 +257,34 @@ def run_gold_etl():
 
       SELECT *
       FROM final
-      WHERE trade_date > DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+      WHERE trade_date > DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)
     ) AS src
     ON gold.trade_date = src.trade_date AND gold.ticker = src.ticker
 
+    WHEN MATCHED THEN
+      UPDATE SET
+        open = src.open,
+        high = src.high,
+        low = src.low,
+        close = src.close,
+        total_volume = src.total_volume,
+        ingested_at = src.ingested_at,
+        daily_return = src.daily_return,
+        cumulative_return = src.cumulative_return,
+        ma_20 = src.ma_20,
+        ma_50 = src.ma_50,
+        rsi_14 = src.rsi_14,
+        macd_line = src.macd_line,
+        macd_signal = src.macd_signal,
+        macd_histogram = src.macd_histogram,
+        bb_upper = src.bb_upper,
+        bb_middle = src.bb_middle,
+        bb_lower = src.bb_lower,
+        bb_width = src.bb_width,
+        vma_20 = src.vma_20,
+        volume_ratio = src.volume_ratio,
+        ema_12 = src.ema_12,
+        ema_26 = src.ema_26
     WHEN NOT MATCHED THEN
       INSERT (
         trade_date,

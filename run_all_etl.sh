@@ -38,6 +38,9 @@ python bronze_fred_etl.py || echo "Bronze FRED ETL encountered an error."
 echo "Running Bronze Crypto ETL..."
 python bronze_crypto_etl.py || echo "Bronze Crypto ETL encountered an error."
 
+echo "Running Fundamentals ETL..."
+python fundamentals_etl.py || echo "Fundamentals ETL encountered an error."
+
 echo "Running Silver Data Synthesis ETL..."
 python silver_etl.py || echo "Silver ETL encountered an error."
 

@@ -77,7 +77,7 @@ def ensure_silver_table():
 def get_last_trade_date():
     """Return last trade_date from Silver table; None if empty or missing."""
     today = datetime.now(timezone.utc).date()
-    lookback = today - pd.Timedelta(days=30)
+    lookback = today - pd.Timedelta(days=90)
     logger.info(f"Using safe lookback date: {lookback}")
     return str(lookback)
 
@@ -146,8 +146,8 @@ def build_incremental_sql(last_trade_date) -> str:
     with_arrays AS (
         SELECT
             *,
-            ARRAY_AGG(close) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN 25 PRECEDING AND CURRENT ROW) AS arr26,
-            ARRAY_AGG(close) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS arr12
+            ARRAY_AGG(close) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN CURRENT ROW AND 25 FOLLOWING) AS arr26,
+            ARRAY_AGG(close) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN CURRENT ROW AND 11 FOLLOWING) AS arr12
         FROM returns
     ),
     indicators AS (
@@ -189,7 +189,7 @@ def build_incremental_sql(last_trade_date) -> str:
     with_signal_array AS (
         SELECT
             *,
-            ARRAY_AGG(macd_line) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN 8 PRECEDING AND CURRENT ROW) AS arr_signal
+            ARRAY_AGG(macd_line) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN CURRENT ROW AND 8 FOLLOWING) AS arr_signal
         FROM macd_calc
     ),
     macd_signal_calc AS (
