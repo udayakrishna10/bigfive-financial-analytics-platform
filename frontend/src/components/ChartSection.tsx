@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { getLogo } from '../helpers/logos';
 import { Layers, Activity, BarChart2, Radio } from 'lucide-react';
 import { useRealtimeData } from '../hooks/useRealtimeData';
+import { FundamentalsCards } from './FundamentalsCards';
 
 interface ChartSectionProps {
   ticker?: string;
@@ -624,6 +625,9 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
         <p className="text-[10px] text-gray-400 dark:text-gray-600 font-mono">
           Updated: {isLive ? 'Just now' : 'Today'}
         </p>
+      </div>
+      <div className="mt-8 border-t border-blue-500/10 pt-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+        <FundamentalsCards ticker={ticker} />
       </div>
     </div>
   );
