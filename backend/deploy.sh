@@ -11,6 +11,13 @@ REGION="us-central1"
 REPO_NAME="faang-repo"
 IMAGE_NAME="faang-backend"
 SERVICE_NAME="faang-api"
+# Load environment variables from .env if it exists
+if [ -f "../.env" ]; then
+    echo "Sourcing .env from project root..."
+    # Export vars, ignoring comments and using a subshell trick to avoid eval issues
+    export $(grep -v '^#' ../.env | xargs)
+fi
+
 IMAGE_URI="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$IMAGE_NAME:latest"
 
 echo "Using Project DB: $PROJECT_ID"
@@ -93,6 +100,16 @@ gcloud run jobs deploy fred-etl-job \
     --task-timeout 300s
 
 
+# Fundamentals ETL
+gcloud run jobs deploy fundamentals-etl-job \
+    --image $IMAGE_URI \
+    --region $REGION \
+    --command python \
+    --args etl/fundamentals_etl.py \
+    --set-env-vars GCP_PROJECT=$PROJECT_ID,GCP_DATASET=faang_dataset \
+    --max-retries 1 \
+    --task-timeout 300s
+
 # 6. Schedule Jobs (Cloud Scheduler)
 # Schedule: Bronze (4:30 PM ET), Silver (4:45 PM ET), Gold (5:00 PM ET)
 
@@ -136,17 +153,20 @@ create_scheduler() {
         --quiet
 }
 
-# Bronze (Stocks) - 8:00 PM ET (weekdays, well after market settlement)
-create_scheduler "bronze-etl-job" "bronze-daily-trigger" "0 20 * * 1-5"
+# Bronze (Stocks) - 5:00 PM ET (weekdays, after market settlement begins)
+create_scheduler "bronze-etl-job" "bronze-daily-trigger" "0 17 * * 1-5"
 
-# Bronze (Crypto) - 8:15 PM ET (daily, just after 00:00 UTC day boundary)
-create_scheduler "crypto-etl-job" "crypto-daily-trigger" "15 20 * * *"
+# Bronze (Crypto) - 5:15 PM ET (daily)
+create_scheduler "crypto-etl-job" "crypto-daily-trigger" "15 17 * * *"
 
-# Silver Transform - 8:30 PM ET (daily, handles both stocks & crypto)
-create_scheduler "silver-etl-job" "silver-daily-trigger" "30 20 * * *"
+# Silver Transform - 5:30 PM ET (daily, handles both stocks & crypto)
+create_scheduler "silver-etl-job" "silver-daily-trigger" "30 17 * * *"
 
-# Gold Analytics - 8:45 PM ET (daily, calculating all indicators cleanly)
-create_scheduler "gold-etl-job" "gold-daily-trigger" "45 20 * * *"
+# Gold Analytics - 6:00 PM ET (daily, calculating all indicators cleanly)
+create_scheduler "gold-etl-job" "gold-daily-trigger" "0 18 * * *"
+
+# Fundamentals - 6:30 PM ET (weekdays, after analytical summaries)
+create_scheduler "fundamentals-etl-job" "fundamentals-daily-trigger" "30 18 * * 1-5"
 
 # FRED Economic Data - 6:00 AM ET Monday (weekly, after FRED updates complete)
 create_scheduler "fred-etl-job" "fred-weekly-trigger" "0 6 * * 1"

@@ -77,7 +77,7 @@ export const FundamentalsCards: React.FC<{ ticker?: string }> = ({ ticker }) => 
     const fetchFundamentals = () => {
         setLoading(true);
         setError(null);
-        api.getFundamentals()
+        api.getFundamentals(ticker)
             .then((data: { fundamentals: Fundamental[] }) => {
                 if (data && Array.isArray(data.fundamentals)) {
                     setFundamentals(data.fundamentals);
@@ -94,7 +94,7 @@ export const FundamentalsCards: React.FC<{ ticker?: string }> = ({ ticker }) => 
 
     useEffect(() => {
         fetchFundamentals();
-    }, []);
+    }, [ticker]);
 
     const formatRatio = (val: number | null) => (val ? `${val.toFixed(2)}x` : 'N/A');
     const formatDecimal = (val: number | null) => (val ? val.toFixed(2) : 'N/A');
@@ -166,21 +166,26 @@ export const FundamentalsCards: React.FC<{ ticker?: string }> = ({ ticker }) => 
     }
 
     const filteredFundamentals = ticker
-        ? fundamentals.filter(f => f.ticker === ticker)
+        ? fundamentals.filter(f => f.ticker.toUpperCase() === ticker.toUpperCase())
         : fundamentals;
 
     if (!filteredFundamentals.length) {
         return (
-            <div className="p-4 bg-orange-50 border border-orange-200 text-orange-800 rounded-xl text-center">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-orange-500" />
-                <p className="font-bold">No Fundamentals Data Available</p>
-                <p className="text-xs mt-1">Found 0 records in database for this view.</p>
-                <button
-                    onClick={fetchFundamentals}
-                    className="mt-3 px-3 py-1 bg-white border border-orange-200 rounded text-xs font-bold hover:bg-orange-100"
-                >
-                    Retry Fetch
-                </button>
+            <div className="p-8 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center">
+                <AlertCircle className="w-10 h-10 mx-auto mb-4 text-amber-500" />
+                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 uppercase tracking-tight">Fundamental Data Not Loaded</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-2 max-w-md mx-auto">
+                    Institutional fundamental metrics are currently supported for core tickers like
+                    <span className="text-indigo-500 dark:text-indigo-400 font-bold mx-1">AAPL, AMZN, META, NFLX, and GOOGL.</span>
+                </p>
+                <div className="flex justify-center gap-3 mt-6">
+                    <button
+                        onClick={fetchFundamentals}
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-black uppercase tracking-widest hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20"
+                    >
+                        Force Sync
+                    </button>
+                </div>
             </div>
         );
     }

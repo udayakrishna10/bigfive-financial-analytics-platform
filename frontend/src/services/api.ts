@@ -54,6 +54,6 @@ export const api = {
   getIntradayHistory: (ticker: string) =>
     fetch(`${API_CONFIG.BASE_URL}/intraday-history?ticker=${ticker}&cb=${Date.now()}`, { cache: 'no-store' }).then(res => res.json()),
 
-  getFundamentals: () =>
-    fetch(`${API_CONFIG.BASE_URL}/fundamentals`, { cache: 'no-store' }).then(res => res.json()),
+  getFundamentals: (ticker?: string) =>
+    fetch(`${API_CONFIG.BASE_URL}/fundamentals${ticker ? `?ticker=${ticker}` : ''}`, { cache: 'no-store' }).then(res => res.json()),
 };
