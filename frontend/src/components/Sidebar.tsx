@@ -26,7 +26,7 @@ export const Sidebar = ({ activeTab, setActiveTab, onClose }: SidebarProps) => {
     { id: 'dashboard', label: 'Overview', icon: LayoutDashboard },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'economic', label: 'Economic Data', icon: TrendingUp },
-    { id: 'insights', label: 'AI Insights', icon: Sparkles },
+    { id: 'insights', label: 'AI Assistant', icon: Sparkles },
     { id: 'council', label: 'AI Council', icon: Users },
     { id: 'news', label: 'Stock News', icon: Newspaper },
     { id: 'crypto', label: 'Crypto News', icon: Bitcoin },

@@ -27,9 +27,15 @@ export const AIChat = () => {
       {/* Header */}
       <div className="relative overflow-hidden bg-gradient-to-br from-cyan-50 via-white to-blue-50 dark:from-slate-900 dark:via-slate-900 dark:to-cyan-950 p-4 rounded-2xl border border-cyan-100 dark:border-cyan-900/30 shadow-lg shadow-cyan-500/5 flex-shrink-0">
         <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.05))]" style={{ backgroundSize: '30px 30px' }}></div>
-        <div className="relative">
-          <h2 className="text-xl font-black bg-gradient-to-r from-cyan-600 to-blue-600 dark:from-cyan-400 dark:to-blue-400 bg-clip-text text-transparent">AI Technical Audit</h2>
-          <p className="text-gray-600 dark:text-slate-400 text-xs font-medium">GPT-4 powered market analysis</p>
+        <div className="relative flex justify-between items-start">
+          <div>
+            <h2 className="text-xl font-black bg-gradient-to-r from-cyan-600 to-blue-600 dark:from-cyan-400 dark:to-blue-400 bg-clip-text text-transparent">AI Market Assistant</h2>
+            <p className="text-gray-600 dark:text-slate-400 text-xs font-medium">Your data-grounded copilot for technicals, macro, and news</p>
+          </div>
+          <div className="flex items-center gap-1.5 px-2 py-1 bg-cyan-500/10 rounded-lg border border-cyan-500/20">
+            <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse" />
+            <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-widest">Real-Time Data</span>
+          </div>
         </div>
       </div>
 
@@ -37,7 +43,7 @@ export const AIChat = () => {
       <div className="flex-1 bg-white dark:bg-slate-800/50 rounded-2xl p-6 overflow-y-auto border border-gray-200 dark:border-slate-700/50">
         {error ? <div className="text-rose-500 font-mono text-sm border border-rose-500/20 bg-rose-500/10 p-4 rounded-xl font-medium">{error}</div> :
           ans ? <div className="text-gray-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap text-sm">{ans}</div> :
-            <div className="text-gray-500 dark:text-slate-500 italic text-sm">Start an AI-powered technical audit...</div>}
+            <div className="text-gray-500 dark:text-slate-500 italic text-sm">Ask me any question about the markets or BigFive stocks...</div>}
       </div>
 
       {/* Input Area */}

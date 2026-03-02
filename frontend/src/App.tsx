@@ -86,11 +86,18 @@ export default function App() {
           <MobileNav activeTab={activeTab} setActiveTab={setActiveTab} />
         </main>
 
-        {/* Global Fixed Footer */}
-        <footer className="fixed bottom-0 w-full py-3 bg-white/90 dark:bg-slate-950/90 backdrop-blur-md border-t border-gray-200 dark:border-white/5 flex flex-col items-center justify-center shrink-0 z-50">
-          <p className="text-sm text-gray-600 dark:text-slate-400 font-bold tracking-wide flex items-center gap-2">
-            Designed & Built by <a href="https://www.linkedin.com/in/udayakrishnakaranam10" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors underline-offset-4 hover:underline">Udaya Krishna Karanam</a>
-          </p>
+        {/* Global Fixed Footer - Optimized for Density */}
+        <footer className="fixed bottom-0 w-full py-2.5 bg-white/95 dark:bg-slate-950/95 backdrop-blur-3xl border-t border-slate-200/50 dark:border-white/5 flex flex-col items-center justify-center shrink-0 z-50">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <div className="h-px w-8 sm:w-16 bg-gradient-to-r from-transparent via-slate-400/20 to-indigo-500/40" />
+            <p className="text-[8.5px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.3em] sm:tracking-[0.5em] flex items-center gap-2 sm:gap-3">
+              Designed & Engineered by
+              <span className="bg-gradient-to-r from-indigo-500 via-purple-500 to-amber-500 bg-clip-text text-transparent transition-all hover:scale-105 cursor-default">
+                Udaya Krishna Karanam
+              </span>
+            </p>
+            <div className="h-px w-8 sm:w-16 bg-gradient-to-l from-transparent via-slate-400/20 to-indigo-500/40" />
+          </div>
         </footer>
       </div >
     </RealtimeProvider>

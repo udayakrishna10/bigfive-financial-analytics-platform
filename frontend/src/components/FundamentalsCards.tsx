@@ -78,14 +78,14 @@ export const FundamentalsCards: React.FC<{ ticker?: string }> = ({ ticker }) => 
         setLoading(true);
         setError(null);
         api.getFundamentals()
-            .then(data => {
+            .then((data: { fundamentals: Fundamental[] }) => {
                 if (data && Array.isArray(data.fundamentals)) {
                     setFundamentals(data.fundamentals);
                 } else {
                     setFundamentals([]);
                 }
             })
-            .catch(err => {
+            .catch((err: Error) => {
                 console.error('Failed to fetch fundamentals', err);
                 setError('Failed to load fundamental metrics.');
             })

@@ -4,6 +4,7 @@ import { TrendingUp, TrendingDown, AlertTriangle, RefreshCw, Radio } from 'lucid
 import { getLogo } from '../helpers/logos';
 import { CryptoCards } from './CryptoCards';
 import { useRealtimeData } from '../hooks/useRealtimeData';
+import { FundamentalsCards } from './FundamentalsCards';
 
 interface DashboardProps {
   onTickerSelect?: (ticker: string) => void;
@@ -154,6 +155,9 @@ export const Dashboard = ({ onTickerSelect }: DashboardProps) => {
           <CryptoCards onTickerSelect={onTickerSelect} historicalData={cryptoStocks} realtimeUpdates={realtimeData} />
         </div>
       </div>
+
+      {/* Global Fundamentals Section */}
+      <FundamentalsCards />
 
       {/* Footer Note - Always visible */}
       <div className="flex items-center justify-center gap-2 mt-auto flex-shrink-0 pt-2">
