@@ -12,7 +12,6 @@ jobs:
   backend-checks:
     name: Backend Quality Checks
     runs-on: ubuntu-latest
-    if: contains(github.event.pull_request.changed_files, 'backend/')
     
     steps:
       - name: Checkout
@@ -44,7 +43,6 @@ jobs:
   frontend-checks:
     name: Frontend Quality Checks
     runs-on: ubuntu-latest
-    if: contains(github.event.pull_request.changed_files, 'frontend/')
     
     steps:
       - name: Checkout
