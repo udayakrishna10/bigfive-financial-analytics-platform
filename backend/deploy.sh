@@ -93,6 +93,17 @@ gcloud run jobs deploy fred-etl-job \
     --task-timeout 300s
 
 
+# Fundamentals ETL
+gcloud run jobs deploy fundamentals-etl-job \
+    --image $IMAGE_URI \
+    --region $REGION \
+    --command python \
+    --args etl/fundamentals_etl.py \
+    --set-env-vars GCP_PROJECT=$PROJECT_ID,GCP_DATASET=faang_dataset \
+    --max-retries 1 \
+    --task-timeout 300s
+
+
 # 6. Schedule Jobs (Cloud Scheduler)
 # Schedule: Bronze (4:30 PM ET), Silver (4:45 PM ET), Gold (5:00 PM ET)
 
@@ -147,6 +158,9 @@ create_scheduler "silver-etl-job" "silver-daily-trigger" "30 20 * * *"
 
 # Gold Analytics - 8:45 PM ET (daily, calculating all indicators cleanly)
 create_scheduler "gold-etl-job" "gold-daily-trigger" "45 20 * * *"
+
+# Fundamentals - 9:00 PM ET (weekdays, after analytical summaries)
+create_scheduler "fundamentals-etl-job" "fundamentals-daily-trigger" "0 21 * * 1-5"
 
 # FRED Economic Data - 6:00 AM ET Monday (weekly, after FRED updates complete)
 create_scheduler "fred-etl-job" "fred-weekly-trigger" "0 6 * * 1"

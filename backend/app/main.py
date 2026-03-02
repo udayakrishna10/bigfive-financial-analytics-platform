@@ -268,6 +268,28 @@ class AskRequest(BaseModel):
 def health():
     return {"status": "ok", "service": "bigfive-backend"}
 
+@app.get("/fundamentals")
+def get_fundamentals_data(ticker: str = None):
+    """Fetch stored fundamental metrics for the frontend from BigQuery."""
+    try:
+        if ticker:
+            # Case insensitive match via UPPER()
+            query = f"SELECT * FROM `{PROJECT_ID}.{DATASET}.fundamentals` WHERE ticker = '{ticker.upper()}' LIMIT 1"
+        else:
+            query = f"SELECT * FROM `{PROJECT_ID}.{DATASET}.fundamentals`"
+            
+        df = bq_client.query(query).to_dataframe()
+        if df.empty:
+            return {"fundamentals": []}
+            
+        # Robust NaN handling: force object type so None persists
+        # This prevents React res.json() from silently crashing on NaN floats
+        records = df.astype(object).where(pd.notnull(df), None).to_dict(orient="records")
+        return {"fundamentals": records}
+    except Exception as e:
+        logger.error(f"Error fetching fundamentals: {e}")
+        return {"fundamentals": [], "error": str(e)}
+
 @app.get("/crypto")
 def get_crypto_prices():
     """Get Bitcoin and Ethereum prices from CoinGecko (free API)"""
