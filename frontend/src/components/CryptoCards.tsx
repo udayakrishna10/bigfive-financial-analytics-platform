@@ -51,9 +51,9 @@ export function CryptoCards({ onTickerSelect, historicalData = [], realtimeUpdat
 
     if (loading && !crypto && historicalData.length === 0) {
         return (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div className="flex flex-col gap-2 mb-8">
                 {[1, 2].map((i) => (
-                    <div key={i} className="bg-slate-900/50 rounded-xl p-6 animate-pulse h-32"></div>
+                    <div key={i} className="bg-slate-900/50 rounded-xl p-4 animate-pulse h-24"></div>
                 ))}
             </div>
         );
@@ -65,7 +65,7 @@ export function CryptoCards({ onTickerSelect, historicalData = [], realtimeUpdat
     ];
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex flex-col gap-2">
             {cryptos.map(({ name, symbol, cgKey }) => {
                 const bqData = historicalData.find(h => h.ticker === symbol);
                 const cgData = crypto ? crypto[cgKey] : null;
@@ -92,28 +92,28 @@ export function CryptoCards({ onTickerSelect, historicalData = [], realtimeUpdat
                     <div
                         key={symbol}
                         onClick={() => onTickerSelect?.(symbol)}
-                        className="bg-white dark:bg-slate-800/50 rounded-xl p-4 border border-gray-200 dark:border-slate-700/50 hover:border-purple-500/40 dark:hover:border-purple-500/40 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/10 hover:-translate-y-0.5 relative overflow-hidden group"
+                        className="bg-white dark:bg-slate-800/50 rounded-xl p-2.5 border border-gray-200 dark:border-slate-700/50 hover:border-purple-500/40 dark:hover:border-purple-500/40 cursor-pointer transition-all duration-300 hover:shadow-lg hover:shadow-purple-500/10 hover:-translate-y-0.5 relative overflow-hidden group flex flex-col justify-between"
                     >
-                        <div className="flex justify-between items-start mb-3 relative z-10">
+                        <div className="flex justify-between items-start mb-2 relative z-10">
                             <div>
-                                <div className="flex items-center gap-2 mb-1">
-                                    {getLogo(symbol) && <img src={getLogo(symbol) || ""} alt={symbol} className="w-6 h-6 object-contain" />}
-                                    <h3 className="text-lg font-black text-gray-900 dark:text-white">{name}</h3>
-                                    <span className="text-xs font-mono font-bold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded-lg">{symbol}</span>
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                    {getLogo(symbol) && <img src={getLogo(symbol) || ""} alt={symbol} className="w-4 h-4 object-contain" />}
+                                    <h3 className="text-sm font-black text-gray-900 dark:text-white">{name}</h3>
+                                    <span className="text-[9px] font-mono font-bold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-slate-700 px-1.5 py-0.5 rounded-lg">{symbol}</span>
                                 </div>
-                                <p className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                                <p className="text-xl font-black text-gray-900 dark:text-white tracking-tight">
                                     ${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </p>
                             </div>
                             <div className={`flex flex-col items-end ${isPositive ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${isPositive ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
-                                    {isPositive ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
-                                    <span className="font-bold text-sm">{Math.abs(change).toFixed(2)}%</span>
+                                <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-lg ${isPositive ? 'bg-emerald-500/10' : 'bg-rose-500/10'}`}>
+                                    {isPositive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                                    <span className="font-bold text-[11px]">{Math.abs(change).toFixed(2)}%</span>
                                 </div>
-                                <div className="flex items-center gap-2 mt-1">
-                                    {!cgData && !livePoint && <span className="text-[10px] text-gray-400 font-medium">Delayed</span>}
-                                    {livePoint && <span className="text-[10px] text-purple-500 font-bold animate-pulse">LIVE</span>}
-                                    <span className="text-[10px] text-gray-400 dark:text-slate-500 font-semibold uppercase tracking-wider">
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                    {!cgData && !livePoint && <span className="text-[9px] text-gray-400 font-medium">Delayed</span>}
+                                    {livePoint && <span className="text-[9px] text-purple-500 font-bold animate-pulse">LIVE</span>}
+                                    <span className="text-[9px] text-gray-400 dark:text-slate-500 font-semibold uppercase tracking-wider">
                                         24H
                                     </span>
                                 </div>
@@ -121,20 +121,20 @@ export function CryptoCards({ onTickerSelect, historicalData = [], realtimeUpdat
                         </div>
 
                         <div className="flex items-end justify-between relative z-10">
-                            <div className="flex flex-col gap-1">
+                            <div className="flex flex-col">
                                 {mcap > 0 && (
-                                    <p className="text-xs text-gray-600 dark:text-slate-400 font-medium">
-                                        MCap: <span className="font-mono font-bold text-gray-900 dark:text-slate-200">${(mcap / 1e9).toFixed(1)}B</span>
+                                    <p className="text-[10px] text-gray-600 dark:text-slate-400 font-medium flex gap-1">
+                                        <span>MC:</span> <span className="font-mono font-bold text-gray-900 dark:text-slate-200">${(mcap / 1e9).toFixed(1)}B</span>
                                     </p>
                                 )}
                                 {volume > 0 && (
-                                    <p className="text-xs text-gray-600 dark:text-slate-400 font-medium">
-                                        Vol (24h): <span className="font-mono font-bold text-gray-900 dark:text-slate-200">${(volume / 1e9).toFixed(1)}B</span>
+                                    <p className="text-[10px] text-gray-600 dark:text-slate-400 font-medium flex gap-1">
+                                        <span>Vol:</span> <span className="font-mono font-bold text-gray-900 dark:text-slate-200">${(volume / 1e9).toFixed(1)}B</span>
                                     </p>
                                 )}
                             </div>
 
-                            <div className="h-12 w-28">
+                            <div className="h-8 w-20 opacity-80">
                                 {history.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
                                         <LineChart data={history}>
