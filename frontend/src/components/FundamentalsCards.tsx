@@ -198,9 +198,9 @@ export const FundamentalsCards: React.FC<{ ticker?: string; compact?: boolean }>
                             <tr className="border-b border-indigo-100 dark:border-indigo-500/20 text-slate-500 dark:text-slate-400">
                                 <th className="pb-1.5 font-bold">Ticker</th>
                                 <th className="pb-1.5 font-bold text-right pt-0">P/E</th>
-                                <th className="pb-1.5 font-bold text-right hidden sm:table-cell">Mkt Cap</th>
+                                <th className="pb-1.5 font-bold text-right">Mkt Cap</th>
                                 <th className="pb-1.5 font-bold text-right">Rev Grwth</th>
-                                <th className="pb-1.5 font-bold text-right hidden lg:table-cell">Net Margin</th>
+                                <th className="pb-1.5 font-bold text-right">Net Margin</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -213,9 +213,9 @@ export const FundamentalsCards: React.FC<{ ticker?: string; compact?: boolean }>
                                         </div>
                                     </td>
                                     <td className={`py-0.5 text-right font-mono text-[11px] ${getIndicatorColor('trailingPE', fund.trailingPE)}`}>{formatRatio(fund.trailingPE)}</td>
-                                    <td className="py-0.5 text-right text-gray-700 dark:text-gray-300 font-medium font-mono text-[11px] hidden sm:table-cell">{formatCurrency(fund.marketCap)}</td>
+                                    <td className="py-0.5 text-right text-gray-700 dark:text-gray-300 font-medium font-mono text-[11px]">{formatCurrency(fund.marketCap)}</td>
                                     <td className={`py-0.5 text-right font-mono text-[11px] ${getIndicatorColor('revenueGrowth', fund.revenueGrowth)}`}>{formatPercent(fund.revenueGrowth)}</td>
-                                    <td className={`py-0.5 text-right font-mono text-[11px] ${getIndicatorColor('profitMargins', fund.profitMargins)} hidden lg:table-cell`}>{formatPercent(fund.profitMargins)}</td>
+                                    <td className={`py-0.5 text-right font-mono text-[11px] ${getIndicatorColor('profitMargins', fund.profitMargins)}`}>{formatPercent(fund.profitMargins)}</td>
                                 </tr>
                             ))}
                         </tbody>
