@@ -61,26 +61,29 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
     }
   }, [ticker, range]);
 
-  // Append live tick to base data for 1D view only
+  // Append live tick to base data
   const activePoints = useMemo(() => {
     let baseData = range === '1D' ? intradayPoints : allPoints;
 
     if (range !== '1D') {
       const sliceMap: Record<string, number> = { '7D': 7, '1M': 30, '3M': 90, '6M': 180 };
       baseData = baseData.slice(-(sliceMap[range] ?? 90));
-      return baseData;
     }
 
     const liveTick = realtimeData[ticker];
     if (!liveTick || !isLive) return baseData;
 
     const lastPoint = baseData[baseData.length - 1];
+    
+    // Extract YYYY-MM-DD from live tick timestamp
+    const trade_date_str = new Date(liveTick.timestamp).toISOString().slice(0, 10);
+
     const livePoint = {
       ...(lastPoint ?? {}),
       close: liveTick.price,
       prev_close: liveTick.prev_close || lastPoint?.prev_close,
       daily_return: liveTick.daily_return,
-      trade_date: liveTick.timestamp,
+      trade_date: range === '1D' ? liveTick.timestamp : trade_date_str,
       timestamp: new Date(liveTick.timestamp).getTime(),
       volume: liveTick.volume_24h || lastPoint?.volume,
       total_volume: liveTick.volume_24h || lastPoint?.total_volume,
@@ -89,14 +92,30 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
 
     if (!lastPoint) return [livePoint];
 
-    const liveTime = new Date(liveTick.timestamp).getTime();
-    const isNewer = liveTime > (lastPoint.timestamp || 0);
-    if (isNewer) return [...baseData, livePoint];
+    if (range === '1D') {
+      const liveTime = new Date(liveTick.timestamp).getTime();
+      const isNewer = liveTime > (lastPoint.timestamp || 0);
+      if (isNewer) return [...baseData, livePoint];
 
-    // Same or older minute: update last bar in-place
-    const newData = [...baseData];
-    newData[newData.length - 1] = { ...newData[newData.length - 1], ...livePoint };
-    return newData;
+      // Same or older minute: update last bar in-place
+      const newData = [...baseData];
+      newData[newData.length - 1] = { ...newData[newData.length - 1], ...livePoint };
+      return newData;
+    } else {
+      // For daily ranges (7D, 1M, etc.), check if the last point is from the exact same day
+      const lastPointDate = lastPoint.trade_date || 
+                            (lastPoint.timestamp ? new Date(lastPoint.timestamp).toISOString().slice(0, 10) : null);
+      
+      if (lastPointDate === trade_date_str) {
+        // Same day: update the last bar with the current live price
+        const newData = [...baseData];
+        newData[newData.length - 1] = { ...newData[newData.length - 1], ...livePoint };
+        return newData;
+      } else {
+        // New day: append the current tick as a new daily bar
+        return [...baseData, livePoint];
+      }
+    }
   }, [allPoints, intradayPoints, range, realtimeData, ticker, isLive]);
 
   // `points` is a direct alias of activePoints (no extra render cycle)
