@@ -53,12 +53,7 @@ export default function App() {
 
         <main className="flex-1 flex flex-col min-w-0 relative bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
           {/* Futuristic Header - Responsive */}
-          <header className="h-14 border-b border-gray-200 dark:border-white/5 bg-white dark:bg-white/5 backdrop-blur-2xl flex items-center justify-between px-4 md:px-6 z-20 shadow-lg shadow-black/10 sticky top-0 relative">
-            <div className="flex flex-col">
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white capitalize tracking-tight md:block hidden">{activeTab}</h1>
-              {/* Mobile: Show active tab smaller or rely on bottom nav, keeping space for centered logo */}
-              <h1 className="text-sm font-bold text-gray-600 dark:text-slate-400 capitalize tracking-tight md:hidden">{activeTab}</h1>
-            </div>
+          <header className="h-14 border-b border-gray-200 dark:border-white/5 bg-white dark:bg-white/5 backdrop-blur-2xl flex items-center justify-end px-4 md:px-6 z-20 shadow-lg shadow-black/10 sticky top-0">
 
             {/* Mobile Center Branding */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:hidden">
@@ -69,8 +64,8 @@ export default function App() {
               <ThemeToggle />
               <div className="flex items-center gap-3 px-4 py-2 bg-gray-100 dark:bg-slate-900 rounded-2xl border border-gray-300 dark:border-slate-800 text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
                 <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                <span className="hidden sm:inline">DASHBOARD_LIVE</span>
-                <span className="sm:hidden">LIVE</span>
+                <span className="hidden sm:inline">APP LIVE</span>
+                <span className="sm:hidden">APP LIVE</span>
               </div>
             </div>
           </header>
