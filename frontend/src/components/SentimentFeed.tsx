@@ -26,7 +26,7 @@ export const SentimentFeed = ({ ticker = "AAPL" }) => {
   }, [effectiveTicker, ticker]);
 
   return (
-    <div className="flex flex-col h-full space-y-4">
+    <div className="flex flex-col h-full gap-2 min-h-0">
       {/* Header with Gradient Background */}
       <div className="relative overflow-hidden bg-gradient-to-br from-purple-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-900 dark:to-purple-950 p-3 rounded-2xl border border-purple-100 dark:border-purple-900/30 shadow-sm flex-shrink-0">
         <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.05))]" style={{ backgroundSize: '30px 30px' }}></div>
@@ -48,18 +48,18 @@ export const SentimentFeed = ({ ticker = "AAPL" }) => {
           {[1, 2, 3].map(i => <div key={i} className="h-20 bg-gray-100 dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/5" />)}
         </div>
       ) : (
-        <div className="flex-1 overflow-auto space-y-4">
+        <div className="flex-1 overflow-auto flex flex-col gap-2 pr-1 min-h-0 scrollbar-hide">
           {/* AI Consensus Card */}
           <div className="bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-500/10 dark:to-purple-500/10 border border-blue-200 dark:border-white/10 p-2.5 rounded-2xl backdrop-blur-md relative overflow-hidden group shadow-sm flex-shrink-0 mb-3">
             <div className="absolute inset-0 bg-blue-50 dark:bg-blue-500/5 group-hover:bg-blue-100 dark:group-hover:bg-blue-500/10 transition-colors" />
             <div className="relative flex flex-col gap-1.5">
-              <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+              <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 mb-0.5">
                 <div className="p-1 bg-blue-200 dark:bg-blue-500/20 rounded-md">
-                  <Quote size={12} />
+                  <Quote size={10} />
                 </div>
                 <h3 className="text-[10px] font-black uppercase tracking-wider">AI Consensus</h3>
               </div>
-              <p className="text-gray-700 dark:text-slate-200 italic text-sm leading-relaxed font-medium whitespace-pre-line">
+              <p className="text-gray-700 dark:text-slate-200 italic text-[10px] leading-snug font-medium whitespace-pre-line line-clamp-4 md:line-clamp-none hover:line-clamp-none transition-all">
                 "{error ? <span className="text-rose-400">{error}</span> : data?.sentiment_summary}"
               </p>
             </div>
