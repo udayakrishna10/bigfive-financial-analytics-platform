@@ -69,7 +69,7 @@ interface Fundamental {
     updated_at: string;
 }
 
-export const FundamentalsCards: React.FC<{ ticker?: string }> = ({ ticker }) => {
+export const FundamentalsCards: React.FC<{ ticker?: string; compact?: boolean }> = ({ ticker, compact }) => {
     const [fundamentals, setFundamentals] = useState<Fundamental[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -181,6 +181,46 @@ export const FundamentalsCards: React.FC<{ ticker?: string }> = ({ ticker }) => 
                 >
                     Retry Fetch
                 </button>
+            </div>
+        );
+    }
+
+    if (compact) {
+        return (
+            <div className="relative h-full flex flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950 p-3 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 shadow-lg overflow-hidden">
+                <div className="flex justify-between items-center mb-2">
+                    <h2 className="text-sm font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">Key Fundamentals</h2>
+                    <div className="text-[9px] text-slate-500 dark:text-slate-400 flex items-center gap-1"><BarChart3 size={12} /> BQ</div>
+                </div>
+                <div className="flex-1 overflow-auto pr-1 scrollbar-hide">
+                    <table className="w-full text-left text-xs">
+                        <thead>
+                            <tr className="border-b border-indigo-100 dark:border-indigo-500/20 text-slate-500 dark:text-slate-400">
+                                <th className="pb-1.5 font-bold">Ticker</th>
+                                <th className="pb-1.5 font-bold text-right pt-0">P/E</th>
+                                <th className="pb-1.5 font-bold text-right hidden sm:table-cell">Mkt Cap</th>
+                                <th className="pb-1.5 font-bold text-right">Rev Grwth</th>
+                                <th className="pb-1.5 font-bold text-right hidden lg:table-cell">Net Margin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filteredFundamentals.map(fund => (
+                                <tr key={fund.ticker} className="border-b border-gray-100 dark:border-slate-800/80 last:border-0 hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors">
+                                    <td className="py-2.5 font-bold text-gray-800 dark:text-gray-200">
+                                        <div className="flex items-center gap-1.5">
+                                            {getLogo(fund.ticker) && <img src={getLogo(fund.ticker) || ''} alt="" className="w-4 h-4 object-contain" />}
+                                            {fund.ticker}
+                                        </div>
+                                    </td>
+                                    <td className={`py-2.5 text-right font-mono ${getIndicatorColor('trailingPE', fund.trailingPE)}`}>{formatRatio(fund.trailingPE)}</td>
+                                    <td className="py-2.5 text-right text-gray-700 dark:text-gray-300 font-medium font-mono hidden sm:table-cell">{formatCurrency(fund.marketCap)}</td>
+                                    <td className={`py-2.5 text-right font-mono ${getIndicatorColor('revenueGrowth', fund.revenueGrowth)}`}>{formatPercent(fund.revenueGrowth)}</td>
+                                    <td className={`py-2.5 text-right font-mono ${getIndicatorColor('profitMargins', fund.profitMargins)} hidden lg:table-cell`}>{formatPercent(fund.profitMargins)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         );
     }
