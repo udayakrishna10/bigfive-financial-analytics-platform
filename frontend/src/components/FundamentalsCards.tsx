@@ -187,7 +187,7 @@ export const FundamentalsCards: React.FC<{ ticker?: string; compact?: boolean }>
 
     if (compact) {
         return (
-            <div className="relative h-full flex flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950 p-1.5 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 shadow-sm overflow-hidden">
+            <div className="relative flex flex-col bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950 p-1.5 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 shadow-sm overflow-hidden h-fit">
                 <div className="flex justify-between items-center mb-1 px-1">
                     <h2 className="text-xs font-black bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">Key Fundamentals</h2>
                     <div className="text-[8px] text-slate-500 dark:text-slate-400 flex items-center gap-1"><BarChart3 size={10} /> BQ</div>

@@ -144,7 +144,7 @@ export const Dashboard = ({ onTickerSelect }: DashboardProps) => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 lg:min-h-0">
 
         {/* Crypto Section (Col Span 3) */}
-        <div className="lg:col-span-3 flex flex-col h-[300px] lg:h-full bg-gradient-to-br from-purple-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-900 dark:to-purple-950 p-3 rounded-2xl border border-purple-100 dark:border-purple-900/30 shadow-lg relative overflow-hidden">
+        <div className="lg:col-span-3 flex flex-col h-fit bg-gradient-to-br from-purple-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-900 dark:to-purple-950 p-3 rounded-2xl border border-purple-100 dark:border-purple-900/30 shadow-lg relative overflow-hidden">
           <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.05))]" style={{ backgroundSize: '24px 24px' }}></div>
           <div className="relative flex-1 flex flex-col min-h-0">
             <div className="flex justify-between items-center mb-2">
@@ -157,7 +157,7 @@ export const Dashboard = ({ onTickerSelect }: DashboardProps) => {
         </div>
 
         {/* Global Fundamentals Section (Col Span 5) */}
-        <div className="lg:col-span-6 xl:col-span-5 flex flex-col h-[400px] lg:h-full min-h-0 overflow-hidden">
+        <div className="lg:col-span-6 xl:col-span-5 flex flex-col h-fit overflow-hidden">
           <FundamentalsCards compact={true} />
         </div>
 

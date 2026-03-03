@@ -87,9 +87,9 @@ export default function App() {
             <div className="h-px w-8 sm:w-16 bg-gradient-to-r from-transparent via-slate-400/20 to-indigo-500/40" />
             <p className="text-[8.5px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.3em] sm:tracking-[0.5em] flex items-center gap-2 sm:gap-3">
               Designed & Engineered by
-              <span className="bg-gradient-to-r from-indigo-500 via-purple-500 to-amber-500 bg-clip-text text-transparent transition-all hover:scale-105 cursor-default">
+              <a href="https://www.linkedin.com/in/udayakrishnakaranam10" target="_blank" rel="noreferrer" className="bg-gradient-to-r from-indigo-500 via-purple-500 to-amber-500 bg-clip-text text-transparent transition-all hover:scale-105 cursor-pointer">
                 Udaya Krishna Karanam
-              </span>
+              </a>
             </p>
             <div className="h-px w-8 sm:w-16 bg-gradient-to-l from-transparent via-slate-400/20 to-indigo-500/40" />
           </div>
