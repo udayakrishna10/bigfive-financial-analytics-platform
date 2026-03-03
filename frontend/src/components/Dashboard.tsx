@@ -66,7 +66,7 @@ export const Dashboard = ({ onTickerSelect }: DashboardProps) => {
   const cryptoStocks = stocks.filter(s => ['BTC', 'ETH'].includes(s.ticker));
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-[1600px] mx-auto h-[calc(100vh-80px)] overflow-hidden pb-2">
+    <div className="flex flex-col gap-4 w-full max-w-[1600px] mx-auto h-auto lg:h-[calc(100vh-80px)] overflow-y-auto lg:overflow-hidden pb-2">
       {/* Tech Stocks Section */}
       <div className="relative overflow-hidden bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/30 shadow-lg flex-shrink-0">
         <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.05))]" style={{ backgroundSize: '24px 24px' }}></div>
@@ -80,7 +80,7 @@ export const Dashboard = ({ onTickerSelect }: DashboardProps) => {
               </div>
             )}
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             {techStocks.map((s, i) => {
               const livePoint = realtimeData[s.ticker];
               const displayPrice = livePoint ? livePoint.price : s.close;
@@ -140,11 +140,11 @@ export const Dashboard = ({ onTickerSelect }: DashboardProps) => {
         </div>
       </div>
 
-      {/* Bottom Row - Takes remaining height */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0">
+      {/* Bottom Row - Takes remaining height on desktop, flows naturally on mobile */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 lg:min-h-0">
 
         {/* Crypto Section (Col Span 3) */}
-        <div className="lg:col-span-3 flex flex-col h-full bg-gradient-to-br from-purple-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-900 dark:to-purple-950 p-3 rounded-2xl border border-purple-100 dark:border-purple-900/30 shadow-lg relative overflow-hidden">
+        <div className="lg:col-span-3 flex flex-col h-[300px] lg:h-full bg-gradient-to-br from-purple-50 via-white to-pink-50 dark:from-slate-900 dark:via-slate-900 dark:to-purple-950 p-3 rounded-2xl border border-purple-100 dark:border-purple-900/30 shadow-lg relative overflow-hidden">
           <div className="absolute inset-0 bg-grid-slate-100 dark:bg-grid-slate-800 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.05))]" style={{ backgroundSize: '24px 24px' }}></div>
           <div className="relative flex-1 flex flex-col min-h-0">
             <div className="flex justify-between items-center mb-2">
@@ -157,12 +157,12 @@ export const Dashboard = ({ onTickerSelect }: DashboardProps) => {
         </div>
 
         {/* Global Fundamentals Section (Col Span 5) */}
-        <div className="lg:col-span-6 xl:col-span-5 flex flex-col h-full min-h-0 overflow-hidden">
+        <div className="lg:col-span-6 xl:col-span-5 flex flex-col h-[400px] lg:h-full min-h-0 overflow-hidden">
           <FundamentalsCards compact={true} />
         </div>
 
         {/* News & Sentiment Feed (Col Span 4) */}
-        <div className="lg:col-span-3 xl:col-span-4 flex flex-col h-full min-h-0 overflow-hidden">
+        <div className="lg:col-span-3 xl:col-span-4 flex flex-col h-[400px] lg:h-full min-h-0 overflow-hidden">
           <SentimentFeed />
         </div>
       </div>
