@@ -193,7 +193,7 @@ export const FundamentalsCards: React.FC<{ ticker?: string; compact?: boolean }>
                     <div className="text-[8px] text-slate-500 dark:text-slate-400 flex items-center gap-1"><BarChart3 size={10} /> BQ</div>
                 </div>
                 <div className="flex-1 overflow-auto pr-1 scrollbar-hide">
-                    <table className="w-full text-left text-xs">
+                    <table className="w-full text-left text-xs whitespace-nowrap">
                         <thead>
                             <tr className="border-b border-indigo-100 dark:border-indigo-500/20 text-slate-500 dark:text-slate-400">
                                 <th className="pb-1.5 font-bold">Ticker</th>
