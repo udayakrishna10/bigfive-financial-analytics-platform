@@ -6,7 +6,7 @@
 # ==============================================================================
 
 # Set working directory to the project root
-PROJECT_ROOT="/Applications/BigFive"
+PROJECT_ROOT="/Users/udayakrishnakaranam/Documents/bigfive-financial-analytics-platform"
 
 echo "Starting BigFive Daily ETL Pipeline at $(date)"
 
@@ -30,21 +30,21 @@ fi
 cd "$PROJECT_ROOT/backend/etl" || exit
 
 echo "Running Bronze Stock ETL..."
-python bronze_etl.py || echo "Bronze Stock ETL encountered an error."
+python3 bronze_etl.py || echo "Bronze Stock ETL encountered an error."
 
 echo "Running Bronze FRED Economics ETL..."
-python bronze_fred_etl.py || echo "Bronze FRED ETL encountered an error."
+python3 bronze_fred_etl.py || echo "Bronze FRED ETL encountered an error."
 
 echo "Running Bronze Crypto ETL..."
-python bronze_crypto_etl.py || echo "Bronze Crypto ETL encountered an error."
+python3 bronze_crypto_etl.py || echo "Bronze Crypto ETL encountered an error."
 
 echo "Running Fundamentals ETL..."
-python fundamentals_etl.py || echo "Fundamentals ETL encountered an error."
+python3 fundamentals_etl.py || echo "Fundamentals ETL encountered an error."
 
 echo "Running Silver Data Synthesis ETL..."
-python silver_etl.py || echo "Silver ETL encountered an error."
+python3 silver_etl.py || echo "Silver ETL encountered an error."
 
 echo "Running Gold Aggregations ETL..."
-python gold_etl.py || echo "Gold ETL encountered an error."
+python3 gold_etl.py || echo "Gold ETL encountered an error."
 
 echo "BigFive Daily ETL Pipeline completed at $(date)"

@@ -4,6 +4,8 @@ import logging
 from datetime import datetime, timezone
 import pandas as pd
 import pytz
+import time
+import requests
 import yfinance as yf
 from google.cloud import bigquery
 
@@ -70,11 +72,17 @@ def fetch_stock_data(symbols, start_date, interval="1d"):
     """Fetch historical stock data using yfinance."""
     all_data = []
 
+    session = requests.Session()
+    session.headers.update({"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36"})
+
     for sym in symbols:
         try:
             logger.info(f"Fetching {sym} from {start_date.date()} via yfinance")
             # We don't need an 'end' date, it will default to 'today'
-            df = yf.download(sym, start=start_date.date(), progress=False, interval=interval)
+            df = yf.download(sym, start=start_date.date(), progress=False, interval=interval, session=session)
+            
+            # Delay to avoid rate limit
+            time.sleep(1.5)
             
             if df.empty:
                 continue

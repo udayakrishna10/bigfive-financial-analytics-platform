@@ -221,7 +221,7 @@ def run_gold_etl():
             )
             ELSE NULL
           END AS volume_ratio
-        FROM daily
+        FROM with_arrays
       ),
 
       -- Array of last 9 MACD line values for Signal EMA
