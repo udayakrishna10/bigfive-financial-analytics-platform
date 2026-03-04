@@ -3,8 +3,8 @@ import sys
 import logging
 from datetime import datetime, timezone
 import pandas as pd
-# import pandas_market_calendars as mcal  <-- Removed to reduce dependencies
 from google.cloud import bigquery
+import pandas_gbq
 
 # ===========================
 # CONFIG
@@ -15,7 +15,6 @@ BRONZE_TABLE = os.getenv("BRONZE_TABLE", "bronze")
 SILVER_TABLE = os.getenv("SILVER_TABLE", "silver")
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
-# Fully qualified table references
 bronze_ref = f"{PROJECT_ID}.{DATASET}.{BRONZE_TABLE}"
 silver_ref = f"{PROJECT_ID}.{DATASET}.{SILVER_TABLE}"
 
@@ -29,9 +28,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-logger.info(f"Bronze table: {bronze_ref}")
-logger.info(f"Silver table: {silver_ref}")
-
 # ===========================
 # BIGQUERY CLIENT
 # ===========================
@@ -41,7 +37,6 @@ client = bigquery.Client(project=PROJECT_ID)
 # FUNCTIONS
 # ===========================
 def ensure_silver_table():
-    """Create Silver table if it does not exist (DDL must be separate)."""
     create_sql = f"""
     CREATE TABLE IF NOT EXISTS `{silver_ref}` (
         trade_date DATE,
@@ -53,18 +48,18 @@ def ensure_silver_table():
         total_volume INT64,
         ingested_at TIMESTAMP,
         daily_return FLOAT64,
-        -- MACD Components
+        ma_20 FLOAT64,
+        ma_50 FLOAT64,
+        rsi_14 FLOAT64,
         ema_12 FLOAT64,
         ema_26 FLOAT64,
         macd_line FLOAT64,
         macd_signal FLOAT64,
         macd_histogram FLOAT64,
-        -- Bollinger Bands
         bb_middle FLOAT64,
         bb_upper FLOAT64,
         bb_lower FLOAT64,
         bb_width FLOAT64,
-        -- Volume Analysis
         vma_20 FLOAT64,
         volume_ratio FLOAT64
     )
@@ -74,231 +69,137 @@ def ensure_silver_table():
     client.query(create_sql).result()
     logger.info(f"Silver table ensured: {silver_ref}")
 
-def get_last_trade_date():
-    """Return last trade_date from Silver table; None if empty or missing."""
-    today = datetime.now(timezone.utc).date()
-    lookback = today - pd.Timedelta(days=30)
-    logger.info(f"Using safe lookback date: {lookback}")
-    return str(lookback)
-
-def get_dates_to_process(last_trade_date):
-    """
-    Return distinct dates from Bronze that are later than the last Silver date.
-    This ensures we process whatever data is available (Data-Driven), 
-    rather than relying on an external calendar library.
-    """
-    try:
-        if last_trade_date:
-            query = f"""
-                SELECT DISTINCT DATE(timestamp) as trade_date 
-                FROM `{bronze_ref}` 
-                WHERE DATE(timestamp) > '{last_trade_date}'
-                ORDER BY trade_date ASC
-            """
-        else:
-            query = f"""
-                SELECT DISTINCT DATE(timestamp) as trade_date 
-                FROM `{bronze_ref}` 
-                ORDER BY trade_date ASC
-            """
-            
-        df = client.query(query).to_dataframe()
-        if df.empty:
-            logger.info("No new dates found in Bronze table.")
-            return []
-            
-        dates = df["trade_date"].tolist()
-        logger.info(f"Found {len(dates)} new days to process: {[str(d) for d in dates]}")
-        return dates
+def calculate_indicators(df: pd.DataFrame) -> pd.DataFrame:
+    # Sort chronologically
+    df = df.sort_values(["ticker", "trade_date"]).reset_index(drop=True)
+    
+    # 1. Daily Return
+    df["daily_return"] = df.groupby("ticker")["close"].pct_change().fillna(0)
+    
+    # 2. Moving Averages
+    df["ma_20"] = df.groupby("ticker")["close"].transform(lambda x: x.rolling(20, min_periods=20).mean())
+    df["ma_50"] = df.groupby("ticker")["close"].transform(lambda x: x.rolling(50, min_periods=50).mean())
+    
+    # 3. Wilder's RSI (14)
+    delta = df.groupby("ticker")["close"].diff()
+    gain = delta.where(delta > 0, 0)
+    loss = -delta.where(delta < 0, 0)
+    
+    # We must calculate EWM per ticker
+    def calc_rma(series, period):
+        return series.ewm(alpha=1/period, min_periods=period, adjust=False).mean()
         
-    except Exception as e:
-        logger.error(f"Failed to fetch dates from Bronze: {e}")
-        return []
+    avg_gain = gain.groupby(df["ticker"]).transform(lambda x: calc_rma(x, 14))
+    avg_loss = loss.groupby(df["ticker"]).transform(lambda x: calc_rma(x, 14))
+    
+    rs = avg_gain / avg_loss
+    df["rsi_14"] = 100 - (100 / (1 + rs))
+    
+    # 4. MACD
+    def calc_ema(series, span):
+        return series.ewm(span=span, adjust=False).mean()
+        
+    df["ema_12"] = df.groupby("ticker")["close"].transform(lambda x: calc_ema(x, 12))
+    df["ema_26"] = df.groupby("ticker")["close"].transform(lambda x: calc_ema(x, 26))
+    df["macd_line"] = df["ema_12"] - df["ema_26"]
+    df["macd_signal"] = df.groupby("ticker")["macd_line"].transform(lambda x: calc_ema(x, 9))
+    df["macd_histogram"] = df["macd_line"] - df["macd_signal"]
+    
+    # 5. Bollinger Bands
+    df["bb_middle"] = df["ma_20"] # Middle band is 20 SMA
+    bb_std = df.groupby("ticker")["close"].transform(lambda x: x.rolling(20, min_periods=20).std())
+    df["bb_upper"] = df["bb_middle"] + (2 * bb_std)
+    df["bb_lower"] = df["bb_middle"] - (2 * bb_std)
+    df["bb_width"] = (df["bb_upper"] - df["bb_lower"]) / df["bb_middle"]
+    
+    # 6. Volume
+    df["vma_20"] = df.groupby("ticker")["total_volume"].transform(lambda x: x.rolling(20, min_periods=20).mean())
+    df["volume_ratio"] = df["total_volume"] / df["vma_20"]
+    
+    # Clean up NaNs from rolling/ewm to match DB schema (pandas uses NaN, DB uses NULL)
+    # We leave them as NaN so pandas_gbq correctly inserts them as NULLs
+    return df
 
-def build_incremental_sql(last_trade_date) -> str:
-    """Incremental SQL to build Silver table from Bronze."""
-    bronze_filter = f"WHERE DATE(timestamp) >= DATE_SUB('{last_trade_date}', INTERVAL 1 DAY)" if last_trade_date else ""
-
-    sql = f"""
-    WITH daily AS (
-        SELECT
-            DATE(timestamp) AS trade_date,
-            ticker,
-            ARRAY_AGG(open ORDER BY timestamp ASC LIMIT 1)[OFFSET(0)] AS open,
-            MAX(high) AS high,
-            MIN(low) AS low,
-            ARRAY_AGG(close ORDER BY timestamp DESC LIMIT 1)[OFFSET(0)] AS close,
-            SUM(volume) AS total_volume,
-            CURRENT_TIMESTAMP() AS ingested_at
-        FROM `{bronze_ref}`
-        {bronze_filter}
-        GROUP BY trade_date, ticker
-    ),
-    returns AS (
-        SELECT
-            *,
-            SAFE_DIVIDE(
-                close - COALESCE(LAG(close) OVER (PARTITION BY ticker ORDER BY trade_date), close),
-                COALESCE(LAG(close) OVER (PARTITION BY ticker ORDER BY trade_date), close)
-            ) AS daily_return
-        FROM daily
-    ),
-    with_arrays AS (
-        SELECT
-            *,
-            ARRAY_AGG(close) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN 25 PRECEDING AND CURRENT ROW) AS arr26,
-            ARRAY_AGG(close) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN 11 PRECEDING AND CURRENT ROW) AS arr12
-        FROM returns
-    ),
-    indicators AS (
-        SELECT
-            * EXCEPT (arr26, arr12),
-            -- True EMA-12 (alpha = 2/13)
-            CASE WHEN ARRAY_LENGTH(arr12) = 12
-                THEN (SELECT SUM(v * POW(11/13, off)) / SUM(POW(11/13, off)) FROM UNNEST(arr12) AS v WITH OFFSET off)
-                ELSE NULL END AS ema_12,
-            -- True EMA-26 (alpha = 2/27)
-            CASE WHEN ARRAY_LENGTH(arr26) = 26
-                THEN (SELECT SUM(v * POW(25/27, off)) / SUM(POW(25/27, off)) FROM UNNEST(arr26) AS v WITH OFFSET off)
-                ELSE NULL END AS ema_26,
-            -- Bollinger Bands components
-            AVG(close) OVER (
-                PARTITION BY ticker 
-                ORDER BY trade_date 
-                ROWS BETWEEN 19 PRECEDING AND CURRENT ROW
-            ) AS bb_middle,
-            STDDEV(close) OVER (
-                PARTITION BY ticker 
-                ORDER BY trade_date 
-                ROWS BETWEEN 19 PRECEDING AND CURRENT ROW
-            ) AS bb_std,
-            -- Volume Moving Average
-            AVG(total_volume) OVER (
-                PARTITION BY ticker 
-                ORDER BY trade_date 
-                ROWS BETWEEN 19 PRECEDING AND CURRENT ROW
-            ) AS vma_20
-        FROM with_arrays
-    ),
-    macd_calc AS (
-        SELECT
-            *,
-            (ema_12 - ema_26) AS macd_line
-        FROM indicators
-    ),
-    with_signal_array AS (
-        SELECT
-            *,
-            ARRAY_AGG(macd_line) OVER (PARTITION BY ticker ORDER BY trade_date DESC ROWS BETWEEN 8 PRECEDING AND CURRENT ROW) AS arr_signal
-        FROM macd_calc
-    ),
-    macd_signal_calc AS (
-        SELECT
-            * EXCEPT (arr_signal),
-            CASE WHEN macd_line IS NOT NULL AND ARRAY_LENGTH(arr_signal) = 9
-                THEN (SELECT SUM(v * POW(0.8, off)) / SUM(POW(0.8, off)) FROM UNNEST(arr_signal) AS v WITH OFFSET off)
-                ELSE NULL END AS macd_signal
-        FROM with_signal_array
-    ),
-    final_indicators AS (
-        SELECT
-            * EXCEPT (bb_std),
-            -- MACD Histogram = MACD Line - Signal
-            (macd_line - macd_signal) AS macd_histogram,
-            -- Bollinger Bands
-            (bb_middle + (2 * bb_std)) AS bb_upper,
-            (bb_middle - (2 * bb_std)) AS bb_lower,
-            -- BB Width = (Upper - Lower) / Middle
-            SAFE_DIVIDE((bb_middle + (2 * bb_std)) - (bb_middle - (2 * bb_std)), bb_middle) AS bb_width,
-            -- Volume Ratio = Current Volume / VMA
-            SAFE_DIVIDE(total_volume, vma_20) AS volume_ratio
-        FROM macd_signal_calc
-    ),
-    incremental AS (
-        SELECT * 
-        FROM final_indicators
-        WHERE {f"trade_date > '{last_trade_date}'" if last_trade_date else "TRUE"}
-    )
-    SELECT * FROM incremental
+def process_silver():
+    logger.info("Starting Pandas-based Silver ETL...")
+    ensure_silver_table()
+    
+    # Since we need rolling indicators (RSI takes 14 days, MA takes 50 days),
+    # we must pull at least 50 days of history from Bronze to calculate today accurately.
+    # To keep this incredibly simple and purely idempotent, we will completely recalculate
+    # the trailing 6 months and overwrite Silver entirely.
+    
+    query = f"""
+        WITH daily AS (
+            SELECT
+                DATE(timestamp) AS trade_date,
+                ticker,
+                ARRAY_AGG(open ORDER BY timestamp ASC LIMIT 1)[OFFSET(0)] AS open,
+                MAX(high) AS high,
+                MIN(low) AS low,
+                ARRAY_AGG(close ORDER BY timestamp DESC LIMIT 1)[OFFSET(0)] AS close,
+                SUM(volume) AS total_volume,
+                CURRENT_TIMESTAMP() AS ingested_at
+            FROM `{bronze_ref}`
+            WHERE DATE(timestamp) >= DATE_SUB(CURRENT_DATE(), INTERVAL 200 DAY)
+            GROUP BY trade_date, ticker
+        )
+        SELECT * FROM daily ORDER BY ticker, trade_date
     """
-    return sql
-
-def merge_into_silver(query: str):
-    """MERGE incremental data into Silver table."""
+    
+    logger.info("Fetching raw daily frames from Bronze...")
+    df = client.query(query).to_dataframe()
+    if df.empty:
+        logger.info("No data found in Bronze.")
+        return
+        
+    logger.info(f"Loaded {len(df)} daily rows. Calculating True Indicators via Pandas...")
+    df = calculate_indicators(df)
+    
+    # Write to temp table for merge
+    temp_table = f"{silver_ref}_temp"
+    logger.info(f"Uploading calculated features to {temp_table}...")
+    pandas_gbq.to_gbq(
+        df, 
+        temp_table, 
+        project_id=PROJECT_ID, 
+        if_exists='replace',
+    )
+    
+    # True UPSERT Merge into Silver
     merge_sql = f"""
     MERGE `{silver_ref}` AS target
-    USING ({query}) AS source
+    USING `{temp_table}` AS source
     ON target.trade_date = source.trade_date AND target.ticker = source.ticker
     WHEN MATCHED THEN
       UPDATE SET
-        open = source.open,
-        high = source.high,
-        low = source.low,
-        close = source.close,
-        total_volume = source.total_volume,
-        ingested_at = source.ingested_at,
-        daily_return = source.daily_return,
-        ema_12 = source.ema_12,
-        ema_26 = source.ema_26,
-        macd_line = source.macd_line,
-        macd_signal = source.macd_signal,
-        macd_histogram = source.macd_histogram,
-        bb_middle = source.bb_middle,
-        bb_upper = source.bb_upper,
-        bb_lower = source.bb_lower,
-        bb_width = source.bb_width,
-        vma_20 = source.vma_20,
-        volume_ratio = source.volume_ratio
+        open = source.open, high = source.high, low = source.low, close = source.close,
+        total_volume = source.total_volume, ingested_at = source.ingested_at,
+        daily_return = source.daily_return, ma_20 = source.ma_20, ma_50 = source.ma_50,
+        rsi_14 = source.rsi_14, ema_12 = source.ema_12, ema_26 = source.ema_26,
+        macd_line = source.macd_line, macd_signal = source.macd_signal, macd_histogram = source.macd_histogram,
+        bb_middle = source.bb_middle, bb_upper = source.bb_upper, bb_lower = source.bb_lower,
+        bb_width = source.bb_width, vma_20 = source.vma_20, volume_ratio = source.volume_ratio
     WHEN NOT MATCHED THEN
       INSERT (trade_date, ticker, open, high, low, close, total_volume, ingested_at, daily_return,
-              ema_12, ema_26, macd_line, macd_signal, macd_histogram,
+              ma_20, ma_50, rsi_14, ema_12, ema_26, macd_line, macd_signal, macd_histogram,
               bb_middle, bb_upper, bb_lower, bb_width, vma_20, volume_ratio)
       VALUES (source.trade_date, source.ticker, source.open, source.high, source.low, source.close, 
-              source.total_volume, source.ingested_at, source.daily_return,
-              source.ema_12, source.ema_26, source.macd_line, source.macd_signal, source.macd_histogram,
+              source.total_volume, source.ingested_at, source.daily_return, source.ma_20, source.ma_50,
+              source.rsi_14, source.ema_12, source.ema_26, source.macd_line, source.macd_signal, source.macd_histogram,
               source.bb_middle, source.bb_upper, source.bb_lower, source.bb_width, source.vma_20, source.volume_ratio)
     """
-    logger.info("Running MERGE query for Silver table...")
+    
+    logger.info("Merging True Indicators into Silver table...")
     client.query(merge_sql).result()
-    logger.info("Silver table updated successfully.")
-
-# ===========================
-# MAIN
-# ===========================
-def main():
-    logger.info("Starting NYSE-aware Silver ETL...")
-    start_time = datetime.now(timezone.utc)
-
-    # Ensure Silver table exists
-    ensure_silver_table()
-
-    # Get the last trade date from Silver
-    last_trade_date = get_last_trade_date()
-
-    # Get days to process directly from Bronze Data
-    new_dates = get_dates_to_process(last_trade_date)
-
-    if not new_dates:
-        logger.info("Silver ETL is up to date.")
-        return
-
-    # Build incremental SQL
-    sql = build_incremental_sql(last_trade_date)
-
-    try:
-        # Merge incremental data into Silver
-        merge_into_silver(sql)
-
-        # Optional: fetch new rows for verification
-        df = client.query(sql).to_dataframe()
-        logger.info(f"Processed {len(df)} rows in this ETL run.")
-    except Exception as e:
-        logger.error(f"Silver ETL failed: {e}")
-        sys.exit(1)
-
-    duration = (datetime.now(timezone.utc) - start_time).total_seconds()
-    logger.info(f"NYSE-aware Silver ETL finished in {duration:.2f}s")
-
+    
+    logger.info("Cleaning up temp table...")
+    client.query(f"DROP TABLE IF EXISTS `{temp_table}`")
+    
+    logger.info("Silver ETL with Pandas Indicators completed successfully.")
 
 if __name__ == "__main__":
-    main()
+    start_time = datetime.now(timezone.utc)
+    process_silver()
+    duration = (datetime.now(timezone.utc) - start_time).total_seconds()
+    logger.info(f"Finished in {duration:.2f}s")
