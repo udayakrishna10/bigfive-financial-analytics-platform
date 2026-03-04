@@ -261,6 +261,31 @@ def run_gold_etl():
     ) AS src
     ON gold.trade_date = src.trade_date AND gold.ticker = src.ticker
 
+    WHEN MATCHED THEN
+      UPDATE SET
+        open = src.open,
+        high = src.high,
+        low = src.low,
+        close = src.close,
+        total_volume = src.total_volume,
+        ingested_at = src.ingested_at,
+        daily_return = src.daily_return,
+        cumulative_return = src.cumulative_return,
+        ma_20 = src.ma_20,
+        ma_50 = src.ma_50,
+        rsi_14 = src.rsi_14,
+        macd_line = src.macd_line,
+        macd_signal = src.macd_signal,
+        macd_histogram = src.macd_histogram,
+        bb_upper = src.bb_upper,
+        bb_middle = src.bb_middle,
+        bb_lower = src.bb_lower,
+        bb_width = src.bb_width,
+        vma_20 = src.vma_20,
+        volume_ratio = src.volume_ratio,
+        ema_12 = src.ema_12,
+        ema_26 = src.ema_26
+
     WHEN NOT MATCHED THEN
       INSERT (
         trade_date,

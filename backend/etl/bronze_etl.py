@@ -116,17 +116,17 @@ def fetch_stock_data(symbols, start_date, interval="1d"):
     return pd.concat(all_data, ignore_index=True) if all_data else pd.DataFrame()
 
 def deduplicate_against_bq(df: pd.DataFrame) -> pd.DataFrame:
-    """Remove rows already present in BigQuery."""
+    """Instead of ignoring duplicates, delete the overlapping data from BQ so we can cleanly upsert."""
     if df.empty:
         return df
 
-    # Tickers for the query
+    # We want to clear out any existing data in BQ from the moment our new dataframe starts.
+    # This allows intraday updates (e.g. at 12:00 PM and 4:00 PM) to cleanly overwrite partial volumes.
     tickers = df["ticker"].unique().tolist()
     min_ts = df["timestamp"].min()
 
-    query = f"""
-        SELECT timestamp, ticker
-        FROM `{table_ref}`
+    delete_query = f"""
+        DELETE FROM `{table_ref}`
         WHERE ticker IN UNNEST(@tickers)
           AND timestamp >= @min_ts
     """
@@ -138,22 +138,13 @@ def deduplicate_against_bq(df: pd.DataFrame) -> pd.DataFrame:
     )
     
     try:
-        existing = client.query(query, job_config=job_config).to_dataframe()
-        if not existing.empty:
-            existing["timestamp"] = pd.to_datetime(existing["timestamp"], utc=True)
-            before = len(df)
-            
-            # Anti-join: Keep only rows in DF that are NOT in BQ
-            # This logic protects against duplicates but prevents updates to existing rows.
-            # To allow updates, one would typically DELETE matching rows from BQ first.
-            # For this 'Bronze' append-only pattern, ignoring duplicates is standard.
-            df = df.merge(existing, on=["timestamp", "ticker"], how="left", indicator=True)
-            df = df[df["_merge"] == "left_only"].drop(columns=["_merge"])
-            
-            logger.info("Removed %d duplicates already in BQ", before - len(df))
+        logger.info(f"Deleting overlapping rows from {table_ref} for {len(tickers)} tickers >= {min_ts}")
+        client.query(delete_query, job_config=job_config).result()
     except Exception as e:
-        logger.warning(f"Could not deduplicate against BQ (table might not exist yet): {e}")
+        logger.warning(f"Could not delete existing rows (table might not exist yet): {e}")
         
+    # We return the full dataframe because BigQuery is now clear of overlaps,
+    # so we can safely WRITE_APPEND everything.
     return df
 
 def load_to_bigquery(df: pd.DataFrame) -> None:
