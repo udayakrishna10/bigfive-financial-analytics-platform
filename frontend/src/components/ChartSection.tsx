@@ -486,18 +486,17 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
                   const date = new Date(label);
                   return date.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
                 }}
-                formatter={(value: any, name: any, props: any) => {
+                formatter={(value: any, name: any) => {
                   // Hide internal series keys — only expose user-meaningful data
                   const hidden = new Set(['greenY', 'redY', 'closeAbove', 'closeBelow', 'volumeSqrt', 'cumulative_volume']);
                   if (hidden.has(name)) return [null, null];
                   // Volume: reverse sqrt transform to show real share count
                   if (name === 'Volume') {
                     if (range === '1D') {
-                      const cumVol = props.payload.cumulative_volume;
-                      const displayVol = cumVol != null ? cumVol : Math.round(value * value);
-                      return [new Intl.NumberFormat('en-US', { notation: 'compact' }).format(displayVol), 'Total Vol'];
+                      const realVol = Math.round(value * value);
+                      return [new Intl.NumberFormat('en-US', { notation: 'compact' }).format(realVol), 'Volume / Min'];
                     } else {
-                      return [new Intl.NumberFormat('en-US', { notation: 'compact' }).format(value), 'Volume'];
+                      return [new Intl.NumberFormat('en-US', { notation: 'compact' }).format(value), 'Total Vol'];
                     }
                   }
                   if (name === 'Price' || name === '') return [`$${Number(value).toFixed(2)}`, 'Price'];
