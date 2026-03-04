@@ -93,14 +93,25 @@ async def poll_yfinance(ticker):
         if price is None or prev_close is None:
             raise ValueError("Price or PrevClose is None")
 
+        last_vol = getattr(data, 'last_volume', 0)
+        # Fallback to normal volume if fast_info doesn't have it
+        if not last_vol:
+            try:
+                full_info = stock.info
+                last_vol = full_info.get('volume', 0) or full_info.get('regularMarketVolume', 0)
+            except:
+                pass
+
         daily_return = ((price - prev_close) / prev_close) * 100
-        logger.info(f"DEBUG: {ticker} Price: {price}, PrevClose (regular market): {prev_close}, Change: {daily_return:.2f}%")
+        logger.info(f"DEBUG: {ticker} Price: {price}, PrevClose (regular market): {prev_close}, Change: {daily_return:.2f}% Vol: {last_vol}")
         
         return {
             "ticker": ticker,
             "price": float(price),
             "prev_close": float(prev_close),
             "daily_return": float(daily_return),
+            "volume_24h": int(last_vol) if last_vol else 0,
+            "volume": int(last_vol) if last_vol else 0,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "source": "yfinance_realtime"
         }
@@ -139,14 +150,17 @@ async def poll_crypto():
             if price is None or prev_close is None:
                 raise ValueError(f"Missing price or prev_close for {ticker}")
 
+            last_vol = getattr(data, 'last_volume', 0)
             daily_return = ((price - prev_close) / prev_close) * 100
-            logger.info(f"DEBUG: {ticker} Price: {price}, PrevClose: {prev_close}, Change: {daily_return:.2f}%")
+            logger.info(f"DEBUG: {ticker} Price: {price}, PrevClose: {prev_close}, Change: {daily_return:.2f}%, Vol: {last_vol}")
 
             results.append({
                 "ticker": ticker,
                 "price": float(price),
                 "prev_close": float(prev_close),
                 "daily_return": float(daily_return),
+                "volume_24h": int(last_vol) if last_vol else 0,
+                "volume": int(last_vol) if last_vol else 0,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "source": "yfinance_realtime"
             })

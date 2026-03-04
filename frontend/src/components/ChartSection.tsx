@@ -82,17 +82,21 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
 
     // Extract YYYY-MM-DD from live tick timestamp
     const trade_date_str = new Date(liveTick.timestamp).toISOString().slice(0, 10);
+    const lastPointDate = lastPoint?.trade_date ||
+      (lastPoint?.timestamp ? new Date(lastPoint.timestamp).toISOString().slice(0, 10) : null);
+
+    const isNewDay = range !== '1D' && lastPointDate !== trade_date_str;
 
     const livePoint = {
       ...(lastPoint ?? {}),
       close: liveTick.price,
-      prev_close: liveTick.prev_close || lastPoint?.prev_close,
+      prev_close: liveTick.prev_close ?? lastPoint?.prev_close,
       daily_return: liveTick.daily_return,
       trade_date: range === '1D' ? liveTick.timestamp : trade_date_str,
       timestamp: new Date(liveTick.timestamp).getTime(),
-      volume: liveTick.volume_24h || lastPoint?.volume,
-      total_volume: liveTick.volume_24h || lastPoint?.total_volume,
-      cumulative_volume: liveTick.volume_24h || lastPoint?.cumulative_volume,
+      volume: liveTick.volume ?? liveTick.volume_24h ?? (isNewDay ? 0 : lastPoint?.volume),
+      total_volume: liveTick.volume_24h ?? (isNewDay ? 0 : lastPoint?.total_volume),
+      cumulative_volume: liveTick.volume_24h ?? (isNewDay ? 0 : lastPoint?.cumulative_volume),
       isLive: true
     };
 
@@ -108,11 +112,7 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
       newData[newData.length - 1] = { ...newData[newData.length - 1], ...livePoint };
       return newData;
     } else {
-      // For daily ranges (7D, 1M, etc.), check if the last point is from the exact same day
-      const lastPointDate = lastPoint.trade_date ||
-        (lastPoint.timestamp ? new Date(lastPoint.timestamp).toISOString().slice(0, 10) : null);
-
-      if (lastPointDate === trade_date_str) {
+      if (!isNewDay) {
         // Same day: update the last bar with the current live price
         const newData = [...baseData];
         newData[newData.length - 1] = { ...newData[newData.length - 1], ...livePoint };
