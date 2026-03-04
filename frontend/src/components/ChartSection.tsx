@@ -46,12 +46,17 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
       setIntradayPoints([]);          // clear stale data on ticker/range change
       setIntradayPrevClose(null);
       api.getIntradayHistory(ticker).then(data => {
-        const pts = (data.points || []).map((p: any) => ({
-          ...p,
-          close: p.close || p.price,
-          volume: p.volume ?? 0,                           // yfinance Volume column
-          timestamp: new Date(p.timestamp).getTime()
-        }));
+        let cumVol = 0;
+        const pts = (data.points || []).map((p: any) => {
+          cumVol += (p.volume ?? 0);
+          return {
+            ...p,
+            close: p.close || p.price,
+            volume: p.volume ?? 0,                           // yfinance Volume column
+            cumulative_volume: cumVol,
+            timestamp: new Date(p.timestamp).getTime()
+          };
+        });
         setIntradayPoints(pts);
         // Store the authoritative prev_close from the API response
         if (data.prev_close != null) {
@@ -74,7 +79,7 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
     if (!liveTick || !isLive) return baseData;
 
     const lastPoint = baseData[baseData.length - 1];
-    
+
     // Extract YYYY-MM-DD from live tick timestamp
     const trade_date_str = new Date(liveTick.timestamp).toISOString().slice(0, 10);
 
@@ -87,6 +92,7 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
       timestamp: new Date(liveTick.timestamp).getTime(),
       volume: liveTick.volume_24h || lastPoint?.volume,
       total_volume: liveTick.volume_24h || lastPoint?.total_volume,
+      cumulative_volume: liveTick.volume_24h || lastPoint?.cumulative_volume,
       isLive: true
     };
 
@@ -103,9 +109,9 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
       return newData;
     } else {
       // For daily ranges (7D, 1M, etc.), check if the last point is from the exact same day
-      const lastPointDate = lastPoint.trade_date || 
-                            (lastPoint.timestamp ? new Date(lastPoint.timestamp).toISOString().slice(0, 10) : null);
-      
+      const lastPointDate = lastPoint.trade_date ||
+        (lastPoint.timestamp ? new Date(lastPoint.timestamp).toISOString().slice(0, 10) : null);
+
       if (lastPointDate === trade_date_str) {
         // Same day: update the last bar with the current live price
         const newData = [...baseData];
@@ -480,14 +486,19 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
                   const date = new Date(label);
                   return date.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
                 }}
-                formatter={(value: any, name: any) => {
+                formatter={(value: any, name: any, props: any) => {
                   // Hide internal series keys — only expose user-meaningful data
-                  const hidden = new Set(['greenY', 'redY', 'closeAbove', 'closeBelow', 'volumeSqrt']);
+                  const hidden = new Set(['greenY', 'redY', 'closeAbove', 'closeBelow', 'volumeSqrt', 'cumulative_volume']);
                   if (hidden.has(name)) return [null, null];
                   // Volume: reverse sqrt transform to show real share count
                   if (name === 'Volume') {
-                    const realVol = range === '1D' ? Math.round(value * value) : value;
-                    return [new Intl.NumberFormat('en-US', { notation: 'compact' }).format(realVol), 'Volume'];
+                    if (range === '1D') {
+                      const cumVol = props.payload.cumulative_volume;
+                      const displayVol = cumVol != null ? cumVol : Math.round(value * value);
+                      return [new Intl.NumberFormat('en-US', { notation: 'compact' }).format(displayVol), 'Total Vol'];
+                    } else {
+                      return [new Intl.NumberFormat('en-US', { notation: 'compact' }).format(value), 'Volume'];
+                    }
                   }
                   if (name === 'Price' || name === '') return [`$${Number(value).toFixed(2)}`, 'Price'];
                   if (typeof value === 'number') return [`$${value.toFixed(2)}`, name];
