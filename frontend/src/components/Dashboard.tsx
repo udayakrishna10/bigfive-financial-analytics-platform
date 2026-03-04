@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, TickerData } from '../services/api';
 import { TrendingUp, TrendingDown, AlertTriangle, RefreshCw, Radio } from 'lucide-react';
+import { ResponsiveContainer, LineChart, Line, YAxis } from 'recharts';
 import { getLogo } from '../helpers/logos';
 import { CryptoCards } from './CryptoCards';
 import { useRealtimeData } from '../hooks/useRealtimeData';
@@ -122,6 +123,26 @@ export const Dashboard = ({ onTickerSelect }: DashboardProps) => {
                       {displayReturn >= 0 ? <TrendingUp size={16} /> : <TrendingDown size={16} />}
                     </div>
                   </div>
+
+                  {/* Sparkline Mini Chart */}
+                  {s.history && s.history.length > 0 && (
+                    <div className="h-10 mt-2 mb-1 pointer-events-none opacity-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={s.history}>
+                          <YAxis domain={['dataMin', 'dataMax']} hide />
+                          <Line
+                            type="monotone"
+                            dataKey="close"
+                            stroke={displayReturn >= 0 ? '#10b981' : '#f43f5e'}
+                            strokeWidth={2}
+                            dot={false}
+                            isAnimationActive={false}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+
                   <div className="mt-2 pt-2 border-t border-gray-200 dark:border-slate-700 flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <span className="text-gray-500 dark:text-slate-400 text-[10px] font-semibold uppercase tracking-wider">RSI</span>

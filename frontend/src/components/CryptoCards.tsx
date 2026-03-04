@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { API_CONFIG } from '../config';
-import { LineChart, Line, ResponsiveContainer, Tooltip } from 'recharts';
+import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
 import { TickerData } from '../services/api';
 import { getLogo } from '../helpers/logos';
 import { RealtimeMessage } from '../hooks/useRealtimeData';
@@ -138,18 +138,14 @@ export function CryptoCards({ onTickerSelect, historicalData = [], realtimeUpdat
                                 {history.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
                                         <LineChart data={history}>
+                                            <YAxis domain={['dataMin', 'dataMax']} hide />
                                             <Line
                                                 type="monotone"
                                                 dataKey="close"
                                                 stroke={isPositive ? '#10b981' : '#f43f5e'}
                                                 strokeWidth={2}
                                                 dot={false}
-                                            />
-                                            <Tooltip
-                                                contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', padding: '4px 6px' }}
-                                                itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: 'bold' }}
-                                                labelStyle={{ display: 'none' }}
-                                                formatter={(val: number) => [`$${val.toLocaleString()}`, '']}
+                                                isAnimationActive={false}
                                             />
                                         </LineChart>
                                     </ResponsiveContainer>
