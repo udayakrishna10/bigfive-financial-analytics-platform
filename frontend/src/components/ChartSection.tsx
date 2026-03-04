@@ -94,7 +94,7 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
       daily_return: liveTick.daily_return,
       trade_date: range === '1D' ? liveTick.timestamp : trade_date_str,
       timestamp: new Date(liveTick.timestamp).getTime(),
-      volume: liveTick.volume ?? liveTick.volume_24h ?? (isNewDay ? 0 : lastPoint?.volume),
+      volume: range === '1D' ? (lastPoint?.volume ?? 0) : (liveTick.volume ?? liveTick.volume_24h ?? (isNewDay ? 0 : lastPoint?.volume)),
       total_volume: liveTick.volume_24h ?? (isNewDay ? 0 : lastPoint?.total_volume),
       cumulative_volume: liveTick.volume_24h ?? (isNewDay ? 0 : lastPoint?.cumulative_volume),
       isLive: true
