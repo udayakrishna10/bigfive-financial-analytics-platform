@@ -494,7 +494,7 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
                   if (name === 'Volume') {
                     if (range === '1D') {
                       const realVol = Math.round(value * value);
-                      return [new Intl.NumberFormat('en-US', { notation: 'compact' }).format(realVol), 'Volume / Min'];
+                      return [new Intl.NumberFormat('en-US', { notation: 'compact' }).format(realVol), 'Volume'];
                     } else {
                       return [new Intl.NumberFormat('en-US', { notation: 'compact' }).format(value), 'Total Vol'];
                     }
