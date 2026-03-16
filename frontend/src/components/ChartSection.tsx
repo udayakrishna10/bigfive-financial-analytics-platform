@@ -80,12 +80,14 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
 
     const lastPoint = baseData[baseData.length - 1];
 
-    // Extract YYYY-MM-DD from live tick timestamp
-    const trade_date_str = new Date(liveTick.timestamp).toISOString().slice(0, 10);
-    const lastPointDate = lastPoint?.trade_date ||
-      (lastPoint?.timestamp ? new Date(lastPoint.timestamp).toISOString().slice(0, 10) : null);
+    // For 7D+ charts, avoid blindly appending a new day every tick by using local timezone dates.
+    const trade_date_str = new Date(liveTick.timestamp).toLocaleDateString('en-CA'); // 'YYYY-MM-DD' in local UI timezone
+    const lastPointDateStr = lastPoint?.trade_date?.length === 10 ? lastPoint.trade_date : new Date(lastPoint?.trade_date || lastPoint?.timestamp || Date.now()).toLocaleDateString('en-CA');
 
-    const isNewDay = range !== '1D' && lastPointDate !== trade_date_str;
+    const liveTime = new Date(liveTick.timestamp).getTime();
+    const lastPointTime = lastPoint?.timestamp ?? (lastPoint?.trade_date ? new Date(lastPoint.trade_date).getTime() : 0);
+
+    const isNewDay = range !== '1D' && liveTime > lastPointTime && trade_date_str > lastPointDateStr;
 
     const livePoint = {
       ...(lastPoint ?? {}),
@@ -104,10 +106,6 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
 
     if (range !== '1D') {
       const liveDateLocal = new Date(livePoint.trade_date).toLocaleDateString('en-CA');
-      const lastPointDateStr = lastPoint?.trade_date?.length === 10 ? lastPoint.trade_date : new Date(lastPoint?.trade_date || lastPoint?.timestamp || Date.now()).toLocaleDateString('en-CA');
-
-      const liveTime = new Date(liveTick.timestamp).getTime();
-      const lastPointTime = lastPoint?.timestamp ?? (lastPoint?.trade_date ? new Date(lastPoint.trade_date).getTime() : 0);
 
       if (liveTime > lastPointTime && liveDateLocal > lastPointDateStr) {
         return [...baseData, livePoint];
@@ -118,7 +116,6 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
       }
     }
 
-    const liveTime = new Date(liveTick.timestamp).getTime();
     const isNewer = liveTime > (lastPoint.timestamp || 0);
     if (isNewer) return [...baseData, livePoint];
 

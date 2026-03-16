@@ -55,9 +55,9 @@ export default function App() {
           {/* Futuristic Header - Responsive */}
           <header className="h-14 border-b border-gray-200 dark:border-white/5 bg-white dark:bg-white/5 backdrop-blur-2xl flex items-center justify-end px-4 md:px-6 z-20 shadow-lg shadow-black/10 sticky top-0">
 
-            {/* Mobile Center Branding */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 md:hidden">
-              <h1 className="font-black tracking-tighter text-2xl text-gray-900 dark:text-white">BigFive</h1>
+            {/* Branding - Responsive handling */}
+            <div className="flex-1 flex items-center">
+              <h1 className="font-black tracking-tighter text-xl sm:text-2xl text-gray-900 dark:text-white">BigFive</h1>
             </div>
 
             <div className="flex items-center gap-3">
@@ -82,19 +82,19 @@ export default function App() {
         </main>
 
         {/* Global Fixed Footer - Optimized for Density */}
-        <footer className="fixed bottom-0 w-full py-2.5 bg-white/95 dark:bg-slate-950/95 backdrop-blur-3xl border-t border-slate-200/50 dark:border-white/5 flex flex-col items-center justify-center shrink-0 z-50">
-          <div className="flex items-center gap-4 sm:gap-6">
-            <div className="h-px w-8 sm:w-16 bg-gradient-to-r from-transparent via-slate-400/20 to-indigo-500/40" />
-            <p className="text-[8.5px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-[0.3em] sm:tracking-[0.5em] flex items-center gap-2 sm:gap-3">
-              Designed & Engineered by
-              <a href="https://www.linkedin.com/in/udayakrishnakaranam10" target="_blank" rel="noreferrer" className="bg-gradient-to-r from-indigo-500 via-purple-500 to-amber-500 bg-clip-text text-transparent transition-all hover:scale-105 cursor-pointer">
+        <footer className="fixed bottom-0 w-full py-2.5 bg-white/95 dark:bg-slate-950/95 backdrop-blur-3xl border-t border-slate-200/50 dark:border-white/5 flex items-center justify-center shrink-0 z-50">
+          <div className="w-full max-w-7xl px-4 flex items-center justify-center gap-4 sm:gap-6">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-400/20 to-indigo-500/40" />
+            <p className="text-[8.5px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-[0.2em] sm:tracking-[0.5em] flex items-center gap-1.5 sm:gap-3 whitespace-nowrap">
+              Designed & Built by
+              <a href="https://www.linkedin.com/in/udayakrishnakaranam10" target="_blank" rel="noreferrer" className="text-sky-400 dark:text-sky-400 font-black transition-all hover:text-sky-300">
                 Udaya Krishna Karanam
               </a>
             </p>
-            <div className="h-px w-8 sm:w-16 bg-gradient-to-l from-transparent via-slate-400/20 to-indigo-500/40" />
+            <div className="h-px flex-1 bg-gradient-to-l from-transparent via-slate-400/20 to-indigo-500/40" />
           </div>
         </footer>
-      </div >
+      </div>
     </RealtimeProvider>
   );
 }
