@@ -88,8 +88,19 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
     const lastPointTime = lastPoint?.timestamp ?? (lastPoint?.trade_date ? new Date(lastPoint.trade_date).getTime() : 0);
 
     const isCrypto = ['BTC', 'ETH'].includes(ticker);
-    const dayOfWeek = new Date(liveTick.timestamp).getDay(); // 0 is Sunday, 6 is Saturday
-    const isMarketClosed = !isCrypto && (dayOfWeek === 0 || dayOfWeek === 6);
+
+    // Get NY time to check market hours (9:30 AM - 4:00 PM ET)
+    const nyTimeStr = new Date(liveTick.timestamp).toLocaleString('en-US', { timeZone: 'America/New_York' });
+    const nyDate = new Date(nyTimeStr);
+    const nyHour = nyDate.getHours();
+    const nyMin = nyDate.getMinutes();
+    const dayOfWeek = nyDate.getDay(); // 0 is Sunday, 6 is Saturday
+
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const isBeforeOpen = nyHour < 9 || (nyHour === 9 && nyMin < 30);
+    const isAfterClose = nyHour >= 16;
+
+    const isMarketClosed = !isCrypto && (isWeekend || isBeforeOpen || isAfterClose);
 
     const isNewDay = range !== '1D' && liveTime > lastPointTime && trade_date_str > lastPointDateStr && !isMarketClosed;
 
@@ -130,7 +141,7 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
     }
 
     const isNewer = liveTime > (lastPoint.timestamp || 0);
-    if (isNewer) return [...baseData, livePoint];
+    if (isNewer && !isMarketClosed) return [...baseData, livePoint];
 
     // Same or older minute: update last bar in-place
     const newData = [...baseData];
