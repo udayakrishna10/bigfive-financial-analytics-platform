@@ -54,11 +54,13 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
       api.getIntradayHistory(ticker).then(data => {
         let cumVol = 0;
         const pts = (data.points || []).map((p: any) => {
-          cumVol += (p.volume ?? 0);
+          const v = p.volume ?? p.total_volume ?? 0;
+          cumVol += v;
           return {
             ...p,
             close: p.close || p.price,
-            volume: p.volume ?? 0,                           // yfinance Volume column
+            volume: v,                           // map to standard volume key
+            volumeSqrt: Math.sqrt(v),            // pre-calculate for chart
             cumulative_volume: cumVol,
             timestamp: new Date(p.timestamp).getTime()
           };
@@ -118,7 +120,8 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
       trade_date: range === '1D' ? liveTick.timestamp : trade_date_str,
       timestamp: new Date(liveTick.timestamp).getTime(),
       volume: range === '1D' ? (lastPoint?.volume ?? 0) : (liveTick.volume ?? liveTick.volume_24h ?? (isNewDay ? 0 : lastPoint?.volume)),
-      total_volume: liveTick.volume_24h ?? (isNewDay ? 0 : lastPoint?.total_volume),
+      volumeSqrt: range === '1D' ? Math.sqrt(liveTick.volume ?? liveTick.volume_24h ?? 0) : 0,
+      total_volume: liveTick.volume_24h ?? liveTick.volume ?? (isNewDay ? 0 : lastPoint?.total_volume),
       cumulative_volume: liveTick.volume_24h ?? (isNewDay ? 0 : lastPoint?.cumulative_volume),
       isLive: true
     };
