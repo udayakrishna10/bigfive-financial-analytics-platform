@@ -170,6 +170,10 @@ export const FundamentalsCards: React.FC<{ ticker?: string; compact?: boolean }>
         : fundamentals;
 
     if (!filteredFundamentals.length) {
+        // If it's a crypto ticker and we have no fundamentals, just return null (don't show "No Fundamentals" error)
+        const isCrypto = ticker ? ['BTC', 'ETH'].includes(ticker) : false;
+        if (isCrypto) return null;
+
         return (
             <div className="p-4 bg-orange-50 border border-orange-200 text-orange-800 rounded-xl text-center">
                 <AlertCircle className="w-8 h-8 mx-auto mb-2 text-orange-500" />
@@ -184,6 +188,7 @@ export const FundamentalsCards: React.FC<{ ticker?: string; compact?: boolean }>
             </div>
         );
     }
+
 
     if (compact) {
         return (

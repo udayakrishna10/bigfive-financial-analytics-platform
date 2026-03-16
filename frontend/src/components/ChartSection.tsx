@@ -87,7 +87,11 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
     const liveTime = new Date(liveTick.timestamp).getTime();
     const lastPointTime = lastPoint?.timestamp ?? (lastPoint?.trade_date ? new Date(lastPoint.trade_date).getTime() : 0);
 
-    const isNewDay = range !== '1D' && liveTime > lastPointTime && trade_date_str > lastPointDateStr;
+    const isCrypto = ['BTC', 'ETH'].includes(ticker);
+    const dayOfWeek = new Date(liveTick.timestamp).getDay(); // 0 is Sunday, 6 is Saturday
+    const isMarketClosed = !isCrypto && (dayOfWeek === 0 || dayOfWeek === 6);
+
+    const isNewDay = range !== '1D' && liveTime > lastPointTime && trade_date_str > lastPointDateStr && !isMarketClosed;
 
     const livePoint = {
       ...(lastPoint ?? {}),
