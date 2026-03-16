@@ -37,7 +37,13 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
 
   useEffect(() => {
     api.getChart(ticker).then(data => {
-      setAllPoints(data.points);
+      // Normalize historical volume keys to ensure visibility
+      const pts = (data.points || []).map((p: any) => ({
+        ...p,
+        total_volume: p.total_volume ?? p.volume ?? 0,
+        volume: p.volume ?? p.total_volume ?? 0
+      }));
+      setAllPoints(pts);
     });
   }, [ticker]);
 
@@ -536,7 +542,8 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
                   yAxisId="volume"
                   dataKey={range === '1D' ? 'volumeSqrt' : 'total_volume'}
                   name="Volume"
-                  fill={range === '1D' ? 'var(--volume-color)' : '#3b82f6'}
+                  // Standardize to a vibrant Blue for all tickers, matching Apple's best look
+                  fill="#3b82f6"
                   fillOpacity={0.4}
                   opacity={1}
                   barSize={range === '1D' ? 2 : undefined}
