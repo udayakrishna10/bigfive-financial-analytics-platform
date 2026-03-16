@@ -102,26 +102,30 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
 
     if (!lastPoint) return [livePoint];
 
-    if (range === '1D') {
-      const liveTime = new Date(liveTick.timestamp).getTime();
-      const isNewer = liveTime > (lastPoint.timestamp || 0);
-      if (isNewer) return [...baseData, livePoint];
+    if (range !== '1D') {
+      const liveDateLocal = new Date(livePoint.trade_date).toLocaleDateString('en-CA');
+      const lastPointDateStr = lastPoint?.trade_date?.length === 10 ? lastPoint.trade_date : new Date(lastPoint?.trade_date || lastPoint?.timestamp || Date.now()).toLocaleDateString('en-CA');
 
-      // Same or older minute: update last bar in-place
-      const newData = [...baseData];
-      newData[newData.length - 1] = { ...newData[newData.length - 1], ...livePoint };
-      return newData;
-    } else {
-      if (!isNewDay) {
-        // Same day: update the last bar with the current live price
+      const liveTime = new Date(liveTick.timestamp).getTime();
+      const lastPointTime = lastPoint?.timestamp ?? (lastPoint?.trade_date ? new Date(lastPoint.trade_date).getTime() : 0);
+
+      if (liveTime > lastPointTime && liveDateLocal > lastPointDateStr) {
+        return [...baseData, livePoint];
+      } else {
         const newData = [...baseData];
         newData[newData.length - 1] = { ...newData[newData.length - 1], ...livePoint };
         return newData;
-      } else {
-        // New day: append the current tick as a new daily bar
-        return [...baseData, livePoint];
       }
     }
+
+    const liveTime = new Date(liveTick.timestamp).getTime();
+    const isNewer = liveTime > (lastPoint.timestamp || 0);
+    if (isNewer) return [...baseData, livePoint];
+
+    // Same or older minute: update last bar in-place
+    const newData = [...baseData];
+    newData[newData.length - 1] = { ...newData[newData.length - 1], ...livePoint };
+    return newData;
   }, [allPoints, intradayPoints, range, realtimeData, ticker, isLive]);
 
   // `points` is a direct alias of activePoints (no extra render cycle)
@@ -184,11 +188,11 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
       const end = new Date(`${utcDateStr}T23:59:59Z`).getTime();
       return [start, end];
     } else {
-      // Stocks: 9:30 AM - 4:00 PM ET. Use last data point's date to handle weekends/holidays.
+      // Stocks: 9:30 AM - 4:00 PM ET. Use last intraday data point's date to handle weekends/holidays.
       let referenceDateStr = new Date().toLocaleDateString('en-US', { timeZone: 'America/New_York' });
-      if (points && points.length > 0) {
-        const lastPoint = points[points.length - 1];
-        const t = lastPoint.timestamp != null ? lastPoint.timestamp : new Date(lastPoint.trade_date || new Date()).getTime();
+      if (intradayPoints && intradayPoints.length > 0) {
+        const lastHist = intradayPoints[intradayPoints.length - 1];
+        const t = lastHist.timestamp != null ? lastHist.timestamp : new Date(lastHist.trade_date || new Date()).getTime();
         referenceDateStr = new Date(t).toLocaleDateString('en-US', { timeZone: 'America/New_York' });
       }
 
@@ -213,9 +217,9 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
 
     const isCrypto = ['BTC', 'ETH'].includes(ticker);
     let targetDateET = new Date().toLocaleDateString('en-US', { timeZone: 'America/New_York' });
-    if (!isCrypto && points && points.length > 0) {
-      const lastPoint = points[points.length - 1];
-      const t = lastPoint.timestamp != null ? lastPoint.timestamp : new Date(lastPoint.trade_date || new Date()).getTime();
+    if (!isCrypto && intradayPoints && intradayPoints.length > 0) {
+      const lastHist = intradayPoints[intradayPoints.length - 1];
+      const t = lastHist.timestamp != null ? lastHist.timestamp : new Date(lastHist.trade_date || new Date()).getTime();
       targetDateET = new Date(t).toLocaleDateString('en-US', { timeZone: 'America/New_York' });
     }
     const todayUTC = new Date().toISOString().slice(0, 10);
@@ -274,8 +278,8 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
       return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
     }
 
-    // For trade_date (YYYY-MM-DD), parse manually to avoid timezone shifts
-    if (typeof val === 'string' && val.includes('-')) {
+    // For trade_date (YYYY-MM-DD), parse manually if it's strictly a 10 char string
+    if (typeof val === 'string' && val.length === 10 && val.includes('-')) {
       const [year, month, day] = val.split('-').map(Number);
       const date = new Date(year, month - 1, day);
       return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -477,7 +481,7 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
                   }
 
                   // Handle YYYY-MM-DD trade_date
-                  if (typeof label === 'string' && label.includes('-')) {
+                  if (typeof label === 'string' && label.length === 10 && label.includes('-')) {
                     const [year, month, day] = label.split('-').map(Number);
                     const date = new Date(year, month - 1, day);
                     return date.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
