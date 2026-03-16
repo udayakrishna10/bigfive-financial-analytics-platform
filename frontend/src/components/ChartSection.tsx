@@ -109,13 +109,22 @@ export const ChartSection = ({ ticker: propTicker, onTickerChange }: ChartSectio
     if (!lastPoint) return [livePoint];
 
     if (range !== '1D') {
-      const liveDateLocal = new Date(livePoint.trade_date).toLocaleDateString('en-CA');
-
-      if (liveTime > lastPointTime && liveDateLocal > lastPointDateStr) {
+      if (isNewDay) {
         return [...baseData, livePoint];
       } else {
+        // Not a new day trading session: update last bar's price but preserve its identity
         const newData = [...baseData];
-        newData[newData.length - 1] = { ...newData[newData.length - 1], ...livePoint };
+        const lastBar = newData[newData.length - 1];
+
+        // Exclude trade_date and timestamp from live merge if it's the weekend for stocks
+        const { trade_date, timestamp, ...liveMetrics } = livePoint;
+        newData[newData.length - 1] = {
+          ...lastBar,
+          ...liveMetrics,
+          // Explicitly keep original date/time if it's a weekend for stocks
+          trade_date: isMarketClosed ? lastBar.trade_date : (livePoint.trade_date || lastBar.trade_date),
+          timestamp: isMarketClosed ? lastBar.timestamp : (livePoint.timestamp || lastBar.timestamp)
+        };
         return newData;
       }
     }
